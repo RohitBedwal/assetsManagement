@@ -1,5 +1,5 @@
-// src/pages/Reports.jsx
 import React, { useMemo, useState } from "react";
+import { Download, Filter, Calendar, RefreshCcw } from "lucide-react";
 
 const initialReports = [
   { id: 1, name: "Device Inventory", desc: "A comprehensive list of all devices in the system.", date: "2024-01-15", status: "Completed" },
@@ -19,7 +19,7 @@ export default function Reports() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Filter
+  // 🔍 Filter
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return reports;
@@ -31,7 +31,7 @@ export default function Reports() {
     );
   }, [reports, query]);
 
-  // Sort toggle (by name)
+  // 🔢 Sort
   const handleSort = () => {
     const sorted = [...reports].sort((a, b) =>
       sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
@@ -41,7 +41,7 @@ export default function Reports() {
     setCurrentPage(1);
   };
 
-  // Pagination
+  // 📄 Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const pageReports = filtered.slice(startIndex, startIndex + itemsPerPage);
@@ -49,11 +49,13 @@ export default function Reports() {
   const handlePrev = () => setCurrentPage((p) => Math.max(1, p - 1));
   const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
-  // Export CSV (simple client-side)
+  // 📥 Export CSV
   const handleExport = () => {
     const headers = ["Report Name", "Description", "Created At", "Status"];
     const rows = filtered.map((r) => [r.name, r.desc, r.date, r.status]);
-    const csvContent = [headers, ...rows].map((e) => e.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csvContent = [headers, ...rows]
+      .map((e) => e.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -63,6 +65,7 @@ export default function Reports() {
     URL.revokeObjectURL(url);
   };
 
+  // 🔄 Reset
   const handleReset = () => {
     setReports(initialReports);
     setQuery("");
@@ -71,146 +74,166 @@ export default function Reports() {
   };
 
   return (
-    <div className="w-full">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      {/* 🧭 Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-poppins font-bold text-[var(--text-primary)]">Reports</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Generate and export reports on your assets and their performance.
+          <h1 className="text-2xl font-bold text-blue-600">Reports</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Generate and export reports on your assets and performance.
           </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Search */}
+          <input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Search reports..."
+            className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          />
+
+          {/* Export CSV */}
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="relative flex-1 md:max-w-xs">
-          <input
-            type="text"
-            placeholder="Search reports..."
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-slate-400 focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]"
-          />
-        </div>
-
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <button
             onClick={handleSort}
-            className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
           >
             Sort {sortAsc ? "A → Z" : "Z → A"}
           </button>
 
           <button
-            className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            onClick={() => alert("Filter placeholder — implement filter modal")}
+            onClick={() => alert("Filter functionality coming soon")}
+            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1"
           >
+            <Filter className="h-4 w-4" />
             Filter
           </button>
 
           <button
-            className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            onClick={() => alert("Date picker placeholder")}
+            onClick={() => alert("Date picker coming soon")}
+            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1"
           >
+            <Calendar className="h-4 w-4" />
             Date
           </button>
 
           <button
-            onClick={handleExport}
-            className="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95"
-          >
-            Export
-          </button>
-
-          <button
             onClick={handleReset}
-            className="hidden md:inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1"
           >
+            <RefreshCcw className="h-4 w-4" />
             Reset
           </button>
+        </div>
+
+        <div className="text-sm text-slate-600">
+          Showing {Math.min(startIndex + 1, filtered.length)} –{" "}
+          {Math.min(startIndex + pageReports.length, filtered.length)} of {filtered.length}
         </div>
       </div>
 
       {/* Table */}
-      <div className="mt-6 overflow-hidden rounded-lg bg-white border border-slate-100">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 uppercase">
-              <tr className="font-semibold">
-                <th className="px-6 py-3 text-left">Report Name</th>
-                <th className="px-6 py-3 text-left">Description</th>
-                <th className="px-6 py-3 text-left">Created At</th>
-                <th className="px-6 py-3 text-left">Status</th>
-                <th className="px-6 py-3 text-right">Actions</th>
+      <div className="overflow-x-auto border border-slate-200 bg-white shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Report Name</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Description</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Created At</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Status</th>
+              <th className="px-6 py-3 text-right text-gray-600 font-medium">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {pageReports.map((r) => (
+              <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50 transition">
+                <td className="px-6 py-3 font-medium text-gray-800">{r.name}</td>
+                <td className="px-6 py-3 text-gray-600">{r.desc}</td>
+                <td className="px-6 py-3 text-gray-600">{r.date}</td>
+                <td className="px-6 py-3">
+                  <span
+                    className={`inline-flex items-center px-2 py-1  text-xs font-medium ${
+                      r.status === "Completed"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <button className="text-blue-600 text-sm hover:underline">View</button>
+                </td>
               </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-200">
-              {pageReports.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-[var(--text-primary)]">{r.name}</td>
-                  <td className="px-6 py-4 max-w-xs truncate text-[var(--text-secondary)]">{r.desc}</td>
-                  <td className="px-6 py-4 text-[var(--text-secondary)]">{r.date}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        r.status === "Completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-[var(--primary-color)] hover:underline text-sm">View</button>
-                  </td>
-                </tr>
-              ))}
-
-              {pageReports.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
-                    No reports found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between">
-          <div className="text-sm text-slate-600">
-            Page {currentPage} of {totalPages}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrev}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 text-sm rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1.5 text-sm rounded-md ${currentPage === i + 1 ? "bg-[var(--primary-color)] text-white" : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"}`}
-              >
-                {i + 1}
-              </button>
             ))}
 
+            {pageReports.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-6 py-8 text-center text-sm text-gray-500 italic"
+                >
+                  No reports found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-white">
+        <div className="text-sm text-slate-600">
+          Page {currentPage} of {totalPages}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePrev}
+            disabled={currentPage === 1}
+            className="px-3 py-1.5 text-sm  border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
+          >
+            Previous
+          </button>
+
+          {[...Array(totalPages)].map((_, i) => (
             <button
-              onClick={handleNext}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-sm rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`px-3 py-1.5 text-sm  ${
+                currentPage === i + 1
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
+              }`}
             >
-              Next
+              {i + 1}
             </button>
-          </div>
+          ))}
+
+          <button
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1.5 text-sm  border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>

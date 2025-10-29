@@ -1,60 +1,20 @@
-// src/pages/Links.jsx
 import React, { useMemo, useState } from "react";
-import { format } from "date-fns"; // optional, install date-fns or remove formatting
+import { format } from "date-fns";
+import { Download } from "lucide-react";
 
 const initialLinks = [
-  {
-    id: 1,
-    linkType: "Fiber",
-    bandwidth: "1 Gbps",
-    provider: "TechConnect",
-    serviceId: "SVC-12345",
-    expiryDate: "2025-12-31",
-    monthlyCost: 150,
-  },
-  {
-    id: 2,
-    linkType: "Ethernet",
-    bandwidth: "100 Mbps",
-    provider: "NetSolutions",
-    serviceId: "SVC-67890",
-    expiryDate: "2024-06-30",
-    monthlyCost: 80,
-  },
-  {
-    id: 3,
-    linkType: "Wireless",
-    bandwidth: "50 Mbps",
-    provider: "SkyNet",
-    serviceId: "SVC-11223",
-    expiryDate: "2023-11-15",
-    monthlyCost: 50,
-  },
-  {
-    id: 4,
-    linkType: "DSL",
-    bandwidth: "20 Mbps",
-    provider: "GlobalCom",
-    serviceId: "SVC-44556",
-    expiryDate: "2024-03-20",
-    monthlyCost: 30,
-  },
-  {
-    id: 5,
-    linkType: "Satellite",
-    bandwidth: "10 Mbps",
-    provider: "StarLink",
-    serviceId: "SVC-77889",
-    expiryDate: "2025-09-01",
-    monthlyCost: 200,
-  },
+  { id: 1, linkType: "Fiber", bandwidth: "1 Gbps", provider: "TechConnect", serviceId: "SVC-12345", expiryDate: "2025-12-31", monthlyCost: 150 },
+  { id: 2, linkType: "Ethernet", bandwidth: "100 Mbps", provider: "NetSolutions", serviceId: "SVC-67890", expiryDate: "2024-06-30", monthlyCost: 80 },
+  { id: 3, linkType: "Wireless", bandwidth: "50 Mbps", provider: "SkyNet", serviceId: "SVC-11223", expiryDate: "2023-11-15", monthlyCost: 50 },
+  { id: 4, linkType: "DSL", bandwidth: "20 Mbps", provider: "GlobalCom", serviceId: "SVC-44556", expiryDate: "2024-03-20", monthlyCost: 30 },
+  { id: 5, linkType: "Satellite", bandwidth: "10 Mbps", provider: "StarLink", serviceId: "SVC-77889", expiryDate: "2025-09-01", monthlyCost: 200 },
 ];
 
 export default function Links() {
   const [links, setLinks] = useState(initialLinks);
   const [query, setQuery] = useState("");
 
-  // filtered list
+  // 🔍 Filtered links
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return links;
@@ -67,8 +27,8 @@ export default function Links() {
     );
   }, [links, query]);
 
+  // ➕ Add new link
   const handleAdd = () => {
-    // quick add demo — replace with modal or form later
     const nextId = links.length ? Math.max(...links.map((l) => l.id)) + 1 : 1;
     const newLink = {
       id: nextId,
@@ -76,7 +36,9 @@ export default function Links() {
       bandwidth: "100 Mbps",
       provider: "DemoProvider",
       serviceId: `SVC-${Math.floor(10000 + Math.random() * 90000)}`,
-      expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString().slice(0, 10),
+      expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)
+        .toISOString()
+        .slice(0, 10),
       monthlyCost: 99,
     };
     setLinks((prev) => [newLink, ...prev]);
@@ -90,84 +52,99 @@ export default function Links() {
     }
   };
 
+  // 📥 Download CSV
+  const handleDownloadCSV = () => {
+    const csvRows = [
+      ["Link Type", "Bandwidth", "Provider", "Service ID", "Expiry Date", "Monthly Cost ($)"],
+      ...filtered.map((l) => [
+        l.linkType,
+        l.bandwidth,
+        l.provider,
+        l.serviceId,
+        l.expiryDate,
+        l.monthlyCost,
+      ]),
+    ];
+    const csvContent = csvRows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `connectivity_links_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  };
+
   return (
-    <div className="w-full">
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-poppins font-bold text-[var(--text-primary)]">
-            Connectivity Links
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <h1 className="text-2xl font-bold text-blue-600">Connectivity Links</h1>
+          <p className="text-gray-500 text-sm mt-1">
             Manage and monitor connectivity links for your assets.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Search */}
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search links, provider or service id..."
-            className="hidden md:block rounded-lg border border-slate-200 bg-white/90 px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]"
+            placeholder="Search by type, provider, or service ID..."
+            className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
+
+          {/* Download CSV */}
+          <button
+            onClick={handleDownloadCSV}
+            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
+          >
+            <Download className="h-4 w-4" />
+            Download CSV
+          </button>
+
+          {/* Add Link */}
           <button
             onClick={handleAdd}
-            className="flex items-center gap-2 rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-semibold text-white shadow-md hover:opacity-90"
+            className="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
           >
             Add Link
           </button>
         </div>
       </div>
 
-      {/* Table container */}
-      <div className="mt-6 overflow-hidden rounded-lg border border-slate-100 bg-gradient-to-br from-white/90 to-slate-50">
-        <table className="w-full table-auto">
-          <thead className="bg-white/60">
+      {/* Table */}
+      <div className="overflow-x-auto border border-slate-200 bg-white shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="text-left px-6 py-4 text-sm font-medium text-[var(--text-secondary)]">
-                Link Type
-              </th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-[var(--text-secondary)]">
-                Bandwidth
-              </th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-[var(--text-secondary)]">
-                Provider
-              </th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-[var(--text-secondary)]">
-                Service ID
-              </th>
-              <th className="text-left px-6 py-4 text-sm font-medium text-[var(--text-secondary)]">
-                Expiry Date
-              </th>
-              <th className="text-right px-6 py-4 text-sm font-medium text-[var(--text-secondary)]">
-                Monthly Cost
-              </th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Link Type</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Bandwidth</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Provider</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Service ID</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Expiry Date</th>
+              <th className="px-6 py-3 text-right text-gray-600 font-medium">Monthly Cost</th>
             </tr>
           </thead>
-
           <tbody>
-            {filtered.map((link, idx) => (
+            {filtered.map((link) => (
               <tr
                 key={link.id}
-                className={`border-t border-slate-100 hover:bg-slate-50 ${
-                  idx % 2 === 0 ? "bg-white" : "bg-white/95"
-                }`}
+                className="border-t border-slate-100 hover:bg-slate-50 transition"
               >
-                <td className="px-6 py-5 text-sm text-[var(--text-primary)]">{link.linkType}</td>
-                <td className="px-6 py-5 text-sm text-[var(--text-primary)]">{link.bandwidth}</td>
-                <td className="px-6 py-5 text-sm text-[var(--text-primary)]">{link.provider}</td>
-                <td className="px-6 py-5 text-sm text-[var(--text-primary)]">{link.serviceId}</td>
-                <td className="px-6 py-5 text-sm text-[var(--text-primary)]">
-                  {formatDate(link.expiryDate)}
-                </td>
-                <td className="px-6 py-5 text-sm text-right text-[var(--text-primary)]">
-                  ${link.monthlyCost}
-                </td>
+                <td className="px-6 py-3 text-gray-700">{link.linkType}</td>
+                <td className="px-6 py-3 text-gray-700">{link.bandwidth}</td>
+                <td className="px-6 py-3 text-gray-700">{link.provider}</td>
+                <td className="px-6 py-3 text-gray-700">{link.serviceId}</td>
+                <td className="px-6 py-3 text-gray-700">{formatDate(link.expiryDate)}</td>
+                <td className="px-6 py-3 text-right text-gray-700">${link.monthlyCost}</td>
               </tr>
             ))}
-
             {filtered.length === 0 && (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-sm text-slate-500">
+                <td
+                  colSpan={6}
+                  className="px-6 py-6 text-center text-gray-500 italic"
+                >
                   No links found
                 </td>
               </tr>
