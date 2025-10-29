@@ -45,9 +45,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 bg-white/80 backdrop-blur-lg z-30 flex items-center justify-between whitespace-nowrap border-b border-slate-200 pr-8 pl-3 py-2">
       {/* Logo */}
-      <h2 className="text-xl font-bold text-amber-500 flex items-center font-poppins">
+      <h2 className="text-xl font-bold text-[#eb8d3e] flex items-center font-poppins">
         <img src="src/assets/logo.jpg" alt="Logo" className="h-[50px] mr-2" />
-        SOS Asset  Management
+        {/* SOS Asset  Management */}
+        SOS ASSET MANAGEMENT
       </h2>
 
       <div className="flex w-1/2 items-end justify-end gap-4">

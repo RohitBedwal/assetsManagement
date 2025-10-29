@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Lock, Mail, ShieldCheck } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,41 +11,47 @@ const Login = () => {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    // Static credentials for now
     if (email === "admin@example.com" && password === "admin123") {
       localStorage.setItem("authToken", "static_token");
-      navigate("/"); // redirect to dashboard
+      navigate("/");
     } else {
       setError("Invalid email or password");
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cables relative">
-      {/* Background Overlay */}
-      <div className="absolute inset-0 bg-white/60 backdrop-blur-sm"></div>
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 overflow-hidden">
+      {/* Floating blobs for soft background effect */}
+      <div className="absolute top-20 left-32 w-72 h-72 bg-blue-200  mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-32 w-72 h-72 bg-indigo-200 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
 
-      {/* Login Card */}
-      <div className="relative z-10 w-full max-w-md space-y-8 rounded-xl bg-white/90 p-8 shadow-2xl backdrop-blur-lg">
+      {/* Card */}
+      <div className="relative z-10 w-full max-w-md bg-white/80 backdrop-blur-xl border border-slate-100  shadow-2xl p-8 space-y-8">
+        {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-poppins font-bold text-[var(--text-primary)]">
-            Asset Management
+          <div className="flex items-center w-full justify-center mb-3">
+            <img src="src/assets/logo.jpg" className=" w-[100px]" alt="" />
+          </div>
+          <h1 className="text-3xl font-bold text-blue-700 font-poppins">
+            SOS Asset Management
           </h1>
-          <p className="mt-2 text-[var(--text-secondary)]">
-            Sign in to access your dashboard
+          <p className="mt-1 text-sm text-gray-500">
+            Sign in to continue to your dashboard
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          {/* Username / Email */}
-          <div>
+        {/* Form */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          {/* Email */}
+          <div className="relative">
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-[var(--text-secondary)]"
+              className="block text-sm font-medium text-gray-600 mb-1"
             >
-              Username or Email
+              Email Address
             </label>
-            <div className="mt-1">
+            <div className="relative">
+              <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               <input
                 id="email"
                 name="email"
@@ -53,20 +60,22 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="block w-full rounded-lg border border-gray-300 bg-white/70 px-3 py-2 shadow-sm placeholder-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] sm:text-sm"
+                className="w-full  border border-slate-200 bg-white/80 pl-10 pr-3 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                placeholder="admin@example.com"
               />
             </div>
           </div>
 
           {/* Password */}
-          <div>
+          <div className="relative">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-[var(--text-secondary)]"
+              className="block text-sm font-medium text-gray-600 mb-1"
             >
               Password
             </label>
-            <div className="mt-1">
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               <input
                 id="password"
                 name="password"
@@ -75,51 +84,49 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="block w-full rounded-lg border border-gray-300 bg-white/70 px-3 py-2 shadow-sm placeholder-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] sm:text-sm"
+                className="w-full  border border-slate-200 bg-white/80 pl-10 pr-3 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                placeholder="••••••••"
               />
             </div>
           </div>
 
           {/* Error Message */}
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <div className="text-red-500 text-sm text-center font-medium bg-red-50 py-2 ">
+              {error}
+            </div>
+          )}
 
-          {/* Remember me + Forgot password */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
+          {/* Remember Me + Forgot Password */}
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <label className="flex items-center gap-2">
               <input
-                id="remember-me"
-                name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                className="text-blue-600 border-gray-300 focus:ring-blue-500"
               />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-[var(--text-secondary)]"
-              >
-                Remember Me
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <a
-                href="#"
-                className="font-medium text-[var(--primary-color)] hover:text-blue-600"
-              >
-                Forgot Password?
-              </a>
-            </div>
-          </div>
-
-          {/* Login Button */}
-          <div>
-            <button
-              type="submit"
-              className="flex w-full justify-center rounded-lg bg-[var(--primary-color)] px-4 py-3 text-base font-semibold text-white shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2"
+              Remember me
+            </label>
+            <a
+              href="#"
+              className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Login
-            </button>
+              Forgot password?
+            </a>
           </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            className="w-full mt-2 bg-blue-600 text-white text-base font-semibold py-2.5  shadow-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 transition"
+          >
+            Sign In
+          </button>
         </form>
+
+        {/* Footer */}
+        <p className="text-center text-sm text-gray-500 mt-4">
+          © {new Date().getFullYear()} SOS Asset Management
+        </p>
       </div>
     </div>
   );
