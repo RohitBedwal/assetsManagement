@@ -21,7 +21,7 @@ export default function CategoryDevices() {
   const [loading, setLoading] = useState(false);
 
   const api = axios.create({
-    baseURL: `${url}/api`,
+    baseURL: `${url}`,
     headers: { "Content-Type": "application/json" },
   });
 
