@@ -14,7 +14,7 @@ export default function DeviceInfo() {
   const [loading, setLoading] = useState(true);
 
   const api = axios.create({
-    baseURL: `${url}/api`,
+    baseURL: `${url}`,
   });
 
   useEffect(() => {

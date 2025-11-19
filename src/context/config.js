@@ -1,1 +1,1 @@
-export const url ="https://asset-management-backend-sf3e.onrender.com"
+export const url ="https://asset-management-backend-sf3e.onrender.com/api"

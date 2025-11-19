@@ -4,7 +4,7 @@ import { Edit, Trash2, Download } from "lucide-react";
 import AddVendorDrawer from "./AddVendors/index"; // Drawer component
 import { url } from "../../context/config";
 
-const API_URL = `${url}/api/vendors`;
+const API_URL = `${url}/vendors`;
 
 export default function Vendors() {
   const [vendors, setVendors] = useState([]);
