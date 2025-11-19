@@ -51,6 +51,7 @@ function App() {
           <Routes>
             {/* Public Route */}
             <Route path="/login" element={<Login />} />
+            <Route path="/gg" element={<GG />} />
 
             {/* Protected Routes */}
             <Route
