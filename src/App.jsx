@@ -16,6 +16,7 @@ import CategoryDevices from "./pages/devices/Devices";
 import ScanDevice from "./pages/devices/ScanDevice";
 import DeviceInfo from "./pages/devices/DeviceInfo";
 import Profile from "./pages/Profile";
+import GG from "./pages/GG";
 
 function App() {
   const location = useLocation();
