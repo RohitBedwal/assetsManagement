@@ -5,7 +5,7 @@ import Header from "./components/Header";
 
 import Dashboard from "./pages/Dashboard";
 import Links from "./pages/Links";
-import Vendors from "./pages/Vendors";
+import Vendors from "./pages/Vendors/index";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import ProtectedRoute from "./components/ProtectedRoute";

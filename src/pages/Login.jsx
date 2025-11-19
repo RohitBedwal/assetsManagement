@@ -1,36 +1,57 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Mail, ShieldCheck } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
+import { url } from "../context/config";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    if (email === "admin@example.com" && password === "admin123") {
-      localStorage.setItem("authToken", "static_token");
-      navigate("/");
-    } else {
-      setError("Invalid email or password");
+    try {
+      const response = await fetch(`${url}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Save JWT token
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("userInfo", JSON.stringify(data));
+        navigate("/"); // Redirect to dashboard/home
+      } else {
+        setError(data.message || "Invalid credentials");
+      }
+    } catch (err) {
+      console.error("Login Error:", err);
+      setError("Server error. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 overflow-hidden">
       {/* Floating blobs for soft background effect */}
-      <div className="absolute top-20 left-32 w-72 h-72 bg-blue-200  mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute top-20 left-32 w-72 h-72 bg-blue-200 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
       <div className="absolute bottom-20 right-32 w-72 h-72 bg-indigo-200 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
 
       {/* Card */}
-      <div className="relative z-10 w-full max-w-md bg-white/80 backdrop-blur-xl border border-slate-100  shadow-2xl p-8 space-y-8">
+      <div className="relative z-10 w-full max-w-md bg-white/80 backdrop-blur-xl border border-slate-100 shadow-2xl p-8 space-y-8">
         {/* Header */}
         <div className="text-center">
           <div className="flex items-center w-full justify-center mb-3">
-            <img src="src/assets/logo.jpg" className=" w-[100px]" alt="" />
+            <img src="src/assets/logo.jpg" className="w-[100px]" alt="Logo" />
           </div>
           <h1 className="text-3xl font-bold text-blue-700 font-poppins">
             SOS Asset Management
@@ -60,8 +81,8 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full  border border-slate-200 bg-white/80 pl-10 pr-3 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-                placeholder="admin@example.com"
+                className="w-full border border-slate-200 bg-white/80 pl-10 pr-3 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                placeholder="you@example.com"
               />
             </div>
           </div>
@@ -84,7 +105,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full  border border-slate-200 bg-white/80 pl-10 pr-3 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                className="w-full border border-slate-200 bg-white/80 pl-10 pr-3 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
                 placeholder="••••••••"
               />
             </div>
@@ -92,7 +113,7 @@ const Login = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="text-red-500 text-sm text-center font-medium bg-red-50 py-2 ">
+            <div className="text-red-500 text-sm text-center font-medium bg-red-50 py-2">
               {error}
             </div>
           )}
@@ -114,12 +135,17 @@ const Login = () => {
             </a>
           </div>
 
-          {/* Submit */}
+          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full mt-2 bg-blue-600 text-white text-base font-semibold py-2.5  shadow-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 transition"
+            disabled={loading}
+            className={`w-full mt-2 bg-blue-600 text-white text-base font-semibold py-2.5 shadow-md transition ${
+              loading
+                ? "opacity-70 cursor-not-allowed"
+                : "hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 focus:ring-offset-1"
+            }`}
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 

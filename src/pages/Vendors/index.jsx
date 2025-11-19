@@ -1,22 +1,34 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { Edit, Trash2, Download } from "lucide-react";
+import AddVendorDrawer from "./AddVendors/index"; // Drawer component
+import { url } from "../../context/config";
 
-const initialVendors = [
-  { id: 1, vendor: "Acme Supplies", contact: "John Doe", email: "john@acme.com", phone: "9876543210", status: "Active" },
-  { id: 2, vendor: "Global Traders", contact: "Jane Smith", email: "jane@global.com", phone: "8765432109", status: "Inactive" },
-  { id: 3, vendor: "BlueTech", contact: "Michael Scott", email: "michael@bluetech.com", phone: "7654321098", status: "Active" },
-  { id: 4, vendor: "Star Retail", contact: "Sarah Lee", email: "sarah@star.com", phone: "6543210987", status: "Active" },
-  { id: 5, vendor: "NextGen Solutions", contact: "David Kim", email: "david@nextgen.com", phone: "5432109876", status: "Inactive" },
-  { id: 6, vendor: "QuickMart", contact: "Emma Brown", email: "emma@quickmart.com", phone: "4321098765", status: "Active" },
-  { id: 7, vendor: "Zenith Corp", contact: "Robert White", email: "robert@zenith.com", phone: "3210987654", status: "Active" },
-];
+const API_URL = `${url}/api/vendors`;
 
 export default function Vendors() {
-  const [vendors, setVendors] = useState(initialVendors);
+  const [vendors, setVendors] = useState([]);
   const [query, setQuery] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [openDrawer, setOpenDrawer] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState(null); // ✅ for editing
+  const [loading, setLoading] = useState(false);
   const itemsPerPage = 5;
+
+  // ✅ Fetch vendors from backend
+  useEffect(() => {
+    fetchVendors();
+  }, []);
+
+  const fetchVendors = async () => {
+    try {
+      const { data } = await axios.get(API_URL);
+      setVendors(data);
+    } catch (error) {
+      console.error("Error fetching vendors:", error);
+    }
+  };
 
   // 🔍 Filter vendors
   const filtered = useMemo(() => {
@@ -24,10 +36,10 @@ export default function Vendors() {
     if (!q) return vendors;
     return vendors.filter(
       (v) =>
-        v.vendor.toLowerCase().includes(q) ||
-        v.contact.toLowerCase().includes(q) ||
-        v.email.toLowerCase().includes(q) ||
-        v.phone.toLowerCase().includes(q)
+        v.vendor?.toLowerCase().includes(q) ||
+        v.contact?.toLowerCase().includes(q) ||
+        v.email?.toLowerCase().includes(q) ||
+        v.phone?.toLowerCase().includes(q)
     );
   }, [vendors, query]);
 
@@ -49,32 +61,51 @@ export default function Vendors() {
   const handlePrev = () => setCurrentPage((p) => Math.max(1, p - 1));
   const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
-  // ➕ Add
-  const handleAdd = () => {
-    const nextId = vendors.length ? Math.max(...vendors.map((v) => v.id)) + 1 : 1;
-    const newVendor = {
-      id: nextId,
-      vendor: `New Vendor ${nextId}`,
-      contact: "New Contact",
-      email: `vendor${nextId}@demo.com`,
-      phone: String(9000000000 + Math.floor(Math.random() * 99999999)),
-      status: "Active",
-    };
-    setVendors((prev) => [newVendor, ...prev]);
-    setCurrentPage(1);
-  };
-
-  // 🗑️ Delete
-  const handleDelete = (id) => {
+  // 🗑️ Delete vendor
+  const handleDelete = async (id) => {
     if (!confirm("Delete this vendor?")) return;
-    setVendors((prev) => prev.filter((v) => v.id !== id));
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      setVendors((prev) => prev.filter((v) => v._id !== id));
+    } catch (error) {
+      console.error("Error deleting vendor:", error);
+    }
   };
 
-  // ✏️ Edit placeholder
-  const handleEdit = (id) => {
-    const vendor = vendors.find((v) => v.id === id);
-    const updated = { ...vendor, vendor: vendor.vendor + " (edited)" };
-    setVendors((prev) => prev.map((v) => (v.id === id ? updated : v)));
+  // ✏️ Edit vendor — open drawer with vendor data
+  const handleEdit = (vendor) => {
+    setSelectedVendor(vendor);
+    setOpenDrawer(true);
+  };
+
+  // ➕ Add or ✏️ Update Vendor (from Drawer)
+  const handleSaveVendor = async (form) => {
+    setLoading(true);
+    try {
+      let data;
+
+      if (selectedVendor) {
+        // ✅ Update existing vendor
+        const res = await axios.put(`${API_URL}/${selectedVendor._id}`, form);
+        data = res.data;
+        setVendors((prev) =>
+          prev.map((v) => (v._id === selectedVendor._id ? data : v))
+        );
+      } else {
+        // ✅ Add new vendor
+        const res = await axios.post(API_URL, form);
+        data = res.data;
+        setVendors((prev) => [data, ...prev]);
+      }
+
+      setOpenDrawer(false);
+      setSelectedVendor(null);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error("Error saving vendor:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 📥 Download CSV
@@ -103,7 +134,6 @@ export default function Vendors() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Search */}
           <input
             value={query}
             onChange={(e) => {
@@ -114,7 +144,6 @@ export default function Vendors() {
             className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
 
-          {/* Download CSV */}
           <button
             onClick={handleDownloadCSV}
             className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
@@ -123,9 +152,11 @@ export default function Vendors() {
             Download CSV
           </button>
 
-          {/* Add Vendor */}
           <button
-            onClick={handleAdd}
+            onClick={() => {
+              setSelectedVendor(null);
+              setOpenDrawer(true);
+            }}
             className="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
           >
             New Vendor
@@ -138,17 +169,17 @@ export default function Vendors() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleSort}
-            className=" border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
+            className="border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
           >
             Sort {sortAsc ? "A → Z" : "Z → A"}
           </button>
           <button
             onClick={() => {
-              setVendors(initialVendors);
+              fetchVendors();
               setQuery("");
               setCurrentPage(1);
             }}
-            className=" border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
+            className="border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
           >
             Reset
           </button>
@@ -166,7 +197,7 @@ export default function Vendors() {
           <thead className="bg-slate-50">
             <tr>
               <th className="px-6 py-3 text-left text-gray-600 font-medium">Vendor</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Contact Name</th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">Contact</th>
               <th className="px-6 py-3 text-left text-gray-600 font-medium">Email</th>
               <th className="px-6 py-3 text-left text-gray-600 font-medium">Phone</th>
               <th className="px-6 py-3 text-center text-gray-600 font-medium">Status</th>
@@ -176,14 +207,14 @@ export default function Vendors() {
 
           <tbody>
             {pageVendors.map((v) => (
-              <tr key={v.id} className="border-t border-slate-100 hover:bg-slate-50 transition">
+              <tr key={v._id} className="border-t border-slate-100 hover:bg-slate-50 transition">
                 <td className="px-6 py-3">{v.vendor}</td>
                 <td className="px-6 py-3">{v.contact}</td>
                 <td className="px-6 py-3">{v.email}</td>
                 <td className="px-6 py-3">{v.phone}</td>
                 <td className="px-6 py-3 text-center">
                   <span
-                    className={`px-2 py-1  text-xs font-medium ${
+                    className={`px-2 py-1 text-xs font-medium rounded ${
                       v.status === "Active"
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
@@ -195,14 +226,14 @@ export default function Vendors() {
                 <td className="px-6 py-3 text-right">
                   <div className="inline-flex items-center gap-2">
                     <button
-                      onClick={() => handleEdit(v.id)}
-                      className="p-2  hover:bg-slate-100 text-slate-600"
+                      onClick={() => handleEdit(v)}
+                      className="p-2 hover:bg-slate-100 text-slate-600"
                     >
                       <Edit size={16} />
                     </button>
                     <button
-                      onClick={() => handleDelete(v.id)}
-                      className="p-2  hover:bg-slate-100 text-red-600"
+                      onClick={() => handleDelete(v._id)}
+                      className="p-2 hover:bg-slate-100 text-red-600"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -232,7 +263,7 @@ export default function Vendors() {
           <button
             onClick={handlePrev}
             disabled={currentPage === 1}
-            className="px-3 py-1.5 text-sm  border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
           >
             Previous
           </button>
@@ -241,7 +272,7 @@ export default function Vendors() {
             <button
               key={i}
               onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1.5 text-sm  ${
+              className={`px-3 py-1.5 text-sm ${
                 currentPage === i + 1
                   ? "bg-blue-600 text-white"
                   : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
@@ -254,12 +285,24 @@ export default function Vendors() {
           <button
             onClick={handleNext}
             disabled={currentPage === totalPages}
-            className="px-3 py-1.5 text-sm  border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
           >
             Next
           </button>
         </div>
       </div>
+
+      {/* ✅ Add / Edit Vendor Drawer */}
+      <AddVendorDrawer
+        open={openDrawer}
+        onClose={() => {
+          setOpenDrawer(false);
+          setSelectedVendor(null);
+        }}
+        loading={loading}
+        onAdd={handleSaveVendor}
+        editData={selectedVendor} // ✅ pass current vendor for edit
+      />
     </div>
   );
 }
