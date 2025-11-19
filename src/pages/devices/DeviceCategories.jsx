@@ -13,7 +13,7 @@ export default function Categories() {
   const navigate = useNavigate();
 
   const api = axios.create({
-    baseURL: `${url}`,
+    baseURL: `${url}/api`,
     headers: { "Content-Type": "application/json" },
   });
 
