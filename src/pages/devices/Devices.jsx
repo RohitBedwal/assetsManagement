@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import AddDeviceDrawer from "./AddDeviceDrawer";
 import AssignDeviceDrawer from "./AssignDeviceDrawer";
 import { ArrowLeft, Camera, Download } from "lucide-react";
-import {url} from '../../context/config' 
+
 
 export default function CategoryDevices() {
   const { id } = useParams();
@@ -21,7 +21,7 @@ export default function CategoryDevices() {
   const [loading, setLoading] = useState(false);
 
   const api = axios.create({
-    baseURL: `${url}/api`,
+    baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
     headers: { "Content-Type": "application/json" },
   });
 
