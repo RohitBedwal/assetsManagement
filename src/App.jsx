@@ -16,7 +16,6 @@ import CategoryDevices from "./pages/devices/Devices";
 import ScanDevice from "./pages/devices/ScanDevice";
 import DeviceInfo from "./pages/devices/DeviceInfo";
 import Profile from "./pages/Profile";
-import GG from "./GG";
 
 function App() {
   const location = useLocation();
@@ -52,7 +51,6 @@ function App() {
           <Routes>
             {/* Public Route */}
             <Route path="/login" element={<Login />} />
-            <Route path="/gg" element={<GG />} />
 
             {/* Protected Routes */}
             <Route
