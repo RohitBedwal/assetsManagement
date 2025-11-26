@@ -1,21 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { Monitor, CheckCircle, AlertTriangle, RefreshCcw, ChevronDown, Download } from 'lucide-react';
+import { Monitor, CheckCircle, TrendingUp, RefreshCcw, Download, Clipboard, ShoppingBasket, PieChart as PieChartIcon, Users, Plus, MoreVertical, HardDrive } from 'lucide-react';
 
 const Dashboard = () => {
   const [timeframe, setTimeframe] = useState('Daily');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [devices, setDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+
+  const api = axios.create({
+    baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  // Fetch categories and devices
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [categoriesRes, devicesRes] = await Promise.all([
+        api.get('/categories'),
+        api.get('/devices')
+      ]);
+      setCategories(categoriesRes.data);
+      setDevices(devicesRes.data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Chart Data Sets
   const dailyData = [
-    { date: '01/09', amount: 12000 },
-    { date: '02/09', amount: 8000 },
+    { date: '01/09', amount: 12500 },
+    { date: '02/09', amount: 11000 },
     { date: '03/09', amount: 45000 },
     { date: '04/09', amount: 52000 },
-    { date: '05/09', amount: 23000 },
+    { date: '05/09', amount: 22000 },
     { date: '06/09', amount: 15000 },
     { date: '07/09', amount: 35000 },
   ];
@@ -46,16 +77,32 @@ const Dashboard = () => {
     }
   };
 
-  const assetsData = [
-    { name: 'Laptops', value: 450, color: '#3B82F6' },
-    { name: 'Desktops', value: 280, color: '#10B981' },
-    { name: 'Servers', value: 85, color: '#F59E0B' },
-    { name: 'Network Equipment', value: 120, color: '#EF4444' },
-    { name: 'Mobile Devices', value: 200, color: '#8B5CF6' },
-  ];
+  // Calculate real assets data from categories
+  const assetsData = categories.map((cat, index) => {
+    const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#EF4444', '#F59E0B', '#F97316', '#06B6D4', '#EC4899'];
+    const totalDevices = categories.reduce((sum, c) => sum + (c.total || 0), 0);
+    const percentage = totalDevices > 0 ? ((cat.total || 0) / totalDevices * 100).toFixed(1) : 0;
+    
+    return {
+      name: cat.name,
+      value: parseFloat(percentage),
+      count: cat.total || 0,
+      color: colors[index % colors.length]
+    };
+  }).filter(item => item.count > 0); // Only show categories with devices
+
+  // Calculate metrics
+  const totalDevices = devices.length;
+  const activeDevices = devices.filter(d => d.status === 'DEPLOYED').length;
+  const inStockDevices = devices.filter(d => d.status === 'IN_STOCK').length;
+  const totalProjects = [...new Set(devices.filter(d => d.projectName).map(d => d.projectName))].length;
 
   // ✅ CSV Export Function
   const downloadCSV = () => {
+    setShowDownloadModal(true);
+  };
+
+  const confirmDownload = () => {
     const data = getChartData();
     const csvRows = [
       ['Date', 'Amount'],
@@ -68,181 +115,298 @@ const Dashboard = () => {
     link.setAttribute('href', url);
     link.setAttribute('download', `Cost_Distribution_${timeframe}.csv`);
     link.click();
+    toast.success(`CSV file downloaded successfully! (${timeframe} data)`);
+    setShowDownloadModal(false);
   };
-
-  const MetricCard = ({ title, value, icon: Icon, iconColor, bgColor }) => (
-    <div className="bg-white shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-800">{value}</p>
-        </div>
-        <div className={`${bgColor} p-3`}>
-          <Icon className={`h-6 w-6 ${iconColor}`} />
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Overview of your asset management system</p>
+      {/* Top Stats Row - Belanjo Style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {/* Total Devices Card */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+              <Monitor className="w-5 h-5" />
+            </div>
+            <span className="bg-green-50 text-green-600 text-xs font-bold px-2 py-1 rounded">
+              {categories.length} categories
+            </span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800">
+            {loading ? '...' : totalDevices.toLocaleString()}
+          </h3>
+          <p className="text-sm text-gray-400 mt-1">Total Devices</p>
         </div>
 
-        {/* ✅ Download Button */}
-        <button
-          onClick={downloadCSV}
-          className="flex items-center gap-2 border border-gray-300 text-gray-700 text-sm px-4 py-2 rounded-sm bg-white hover:bg-gray-50 transition"
-        >
-          <Download className="h-4 w-4" />
-          Download CSV
-        </button>
-      </div>
+        {/* Active Projects Card */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+              <Clipboard className="w-5 h-5" />
+            </div>
+            <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-1 rounded">
+              {activeDevices} deployed
+            </span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800">
+            {loading ? '...' : totalProjects}
+          </h3>
+          <p className="text-sm text-gray-400 mt-1">Active Projects</p>
+        </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Devices"
-          value="1,235"
-          icon={Monitor}
-          iconColor="text-blue-600"
-          bgColor="bg-blue-100"
-        />
-        <MetricCard
-          title="Active Projects"
-          value="54"
-          icon={CheckCircle}
-          iconColor="text-green-600"
-          bgColor="bg-green-100"
-        />
-        <MetricCard
-          title="Active Devices"
-          value="1,187"
-          icon={CheckCircle}
-          iconColor="text-emerald-600"
-          bgColor="bg-emerald-100"
-        />
-        <MetricCard
-          title="Replacements"
-          value="23"
-          icon={RefreshCcw}
-          iconColor="text-yellow-600"
-          bgColor="bg-yellow-100"
-        />
-      </div>
+        {/* Active Devices Card */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-500">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <span className="bg-green-50 text-green-600 text-xs font-bold px-2 py-1 rounded">
+              {totalDevices > 0 ? `${((activeDevices / totalDevices) * 100).toFixed(1)}%` : '0%'}
+            </span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800">
+            {loading ? '...' : activeDevices.toLocaleString()}
+          </h3>
+          <p className="text-sm text-gray-400 mt-1">Active Devices</p>
+        </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Cost Distribution Chart */}
-        <div className="bg-white shadow-sm border border-gray-200 p-6 relative">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-blue-600">COST DISTRIBUTION</h3>
-
-            {/* Custom Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center justify-between gap-1 border border-gray-300 text-sm px-3 py-1.5 text-gray-700 bg-gray-50 hover:bg-gray-100 focus:ring-2 focus:ring-blue-400 transition-all"
-              >
-                {timeframe}
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 shadow-md z-10">
-                  {['Daily', 'Monthly', 'Yearly'].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setTimeframe(option);
-                        setDropdownOpen(false);
-                      }}
-                      className={`block w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${
-                        timeframe === option ? 'text-blue-600 font-semibold' : 'text-gray-700'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
+        {/* Device Summary Card - Blue Gradient */}
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg shadow-blue-200 text-white relative overflow-hidden">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-sm font-semibold opacity-90">Device Summary</span>
+            <HardDrive className="w-5 h-5 opacity-80" />
+          </div>
+          
+          <div className="space-y-3 mb-4">
+            <div className="flex items-center justify-between bg-white/10 p-2.5 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                <span className="text-xs font-medium">Inward (In Stock)</span>
+              </div>
+              <span className="text-sm font-bold">{inStockDevices}</span>
+            </div>
+            <div className="flex items-center justify-between bg-white/10 p-2.5 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                <span className="text-xs font-medium">Outward (Deployed)</span>
+              </div>
+              <span className="text-sm font-bold">{activeDevices}</span>
             </div>
           </div>
 
-          <div className="h-80 relative">
+          <div className="flex items-center justify-between pt-3 border-t border-white/20">
+            <span className="text-xs opacity-80">Total Devices</span>
+            <span className="text-xl font-bold">{totalDevices}</span>
+          </div>
+
+          {/* Decorative circles */}
+          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/5 rounded-full"></div>
+          <div className="absolute top-10 right-10 w-10 h-10 bg-white/5 rounded-full"></div>
+        </div>
+      </div>
+
+      {/* Charts Section - Belanjo Style */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Main Cost Distribution Chart */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <h3 className="font-bold text-gray-800">Cost Distribution</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={downloadCSV}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download CSV
+              </button>
+              <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+                {['Daily', 'Monthly', 'Yearly'].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setTimeframe(option)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
+                      timeframe === option
+                        ? 'bg-white shadow-sm text-gray-900'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={getChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="2 2" stroke="#d1d5db" opacity={0.5} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={(value) => `${value / 1000}K`} />
-                <Tooltip
-                  content={({ active, payload, label }) =>
-                    active && payload && payload.length ? (
-                      <div className="bg-white p-3 border border-gray-200 shadow-lg">
-                        <p className="text-gray-600 text-sm">{label}</p>
-                        <p className="text-blue-600 font-semibold">
-                          {payload[0].value.toLocaleString()}
-                        </p>
-                      </div>
-                    ) : null
-                  }
+              <AreaChart data={getChartData()} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#9CA3AF' }}
                 />
-                <Line
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                  tickFormatter={(value) => `${value / 1000}k`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value) => [`$${value.toLocaleString()}`, 'Cost']}
+                />
+                <Area
                   type="monotone"
                   dataKey="amount"
-                  stroke="#6366f1"
-                  strokeWidth={1}
-                  dot={{ fill: '#6366f1', strokeWidth: 0, r: 3 }}
-                  activeDot={{ r: 5, fill: '#6366f1' }}
+                  stroke="#3B82F6"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorAmount)"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Assets Distribution Pie Chart */}
-        <div className="bg-white shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-blue-600 mb-2">ASSETS DISTRIBUTION</h3>
-          <div className="h-80 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={assetsData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {assetsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name) => [`${value} devices`, name]}
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '6px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  formatter={(value) => <span className="text-sm text-gray-600">{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+        {/* Assets Distribution Donut Chart */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-gray-800">Assets Distribution</h3>
+            <button 
+              onClick={downloadCSV}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-400 mb-6">Breakdown by category</p>
+          
+          {loading ? (
+            <div className="h-64 flex items-center justify-center">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="text-sm text-gray-500 mt-2">Loading...</p>
+              </div>
+            </div>
+          ) : assetsData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center">
+              <div className="text-center">
+                <Monitor className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No devices yet</p>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="h-64 flex justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={assetsData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {assetsData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        padding: '8px 12px'
+                      }}
+                      formatter={(value, name) => [`${value}% (${assetsData.find(d => d.name === name)?.count || 0} devices)`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Scrollable Legend */}
+              <div className="mt-4 max-h-32 overflow-y-auto pr-2 space-y-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                {assetsData.map((item, index) => (
+                  <div key={index} className="flex items-center gap-2 text-xs">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-gray-600 flex-1 truncate" title={item.name}>
+                      {item.name}
+                    </span>
+                    <span className="text-gray-500 flex-shrink-0">{item.count}</span>
+                    <span className="font-semibold text-gray-800 flex-shrink-0">{item.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Recent Devices Table - Belanjo Style */}
+
+      <div className="h-10"></div> {/* Bottom Spacer */}
+
+      {/* Download Confirmation Modal */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
+            onClick={() => setShowDownloadModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Download className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  Download CSV File?
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Download <span className="font-semibold text-gray-900">{timeframe}</span> Cost Distribution data as CSV file.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDownload}
+                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

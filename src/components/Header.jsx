@@ -1,28 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Bell, User } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { User, Search, LogOut, UserCircle } from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: "New device added", read: false },
-    { id: 2, message: "Warranty expiring soon", read: false },
-  ]);
   const menuRef = useRef(null);
-  const notifRef = useRef(null);
   const navigate = useNavigate();
-  const [notifOpen, setNotifOpen] = useState(false);
+  const location = useLocation();
 
-  // Handle outside click for both dropdowns
+  // Handle outside click for dropdown
   useEffect(() => {
     function handleClickOutside(event) {
-      if (
-        (menuRef.current && !menuRef.current.contains(event.target)) &&
-        (notifRef.current && !notifRef.current.contains(event.target))
-      ) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
         setMenuOpen(false);
-        setNotifOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -34,66 +25,81 @@ export default function Header() {
     navigate("/login");
   };
 
-  const handleProfile = () => navigate("/profile");
+  const handleProfile = () => {
+    setMenuOpen(false);
+    navigate("/profile");
+  };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Get current date
+  const today = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  // Get page title based on route
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path === '/') return 'Dashboard Overview';
+    if (path === '/reports') return 'Reports Overview';
+    if (path.startsWith('/devices')) return 'Devices Management';
+    if (path === '/links') return 'Connectivity Links';
+    if (path === '/vendors') return 'Vendors Management';
+    if (path === '/settings') return 'Settings';
+    if (path === '/profile') return 'User Profile';
+    return 'Dashboard Overview';
   };
 
   return (
-    <header className="sticky top-0 bg-white/80 backdrop-blur-lg z-30 flex items-center justify-between whitespace-nowrap border-b border-slate-200 pr-8 pl-3 py-2">
-      {/* Logo */}
-      <h2 className="text-xl font-bold text-[#eb8d3e] flex items-center font-poppins">
-        <img src="src/assets/logo.jpg" alt="Logo" className="h-[50px] mr-2" />
-        {/* SOS Asset  Management */}
-        SOS ASSET MANAGEMENT
-      </h2>
-
-      <div className="flex w-1/2 items-end justify-end gap-4">
-        {/* Search */}
-        <div className="relative w-full  hidden md:block">
-          <input
-            type="text"
-            placeholder="Search vendors..."
-            className="w-full  border border-slate-200 bg-slate-100 pl-5 pr-4 py-2.5 text-sm placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
-          />
+    <header className="sticky top-0 bg-white/50 backdrop-blur-md border-b border-gray-100 z-40">
+      <div className="h-20 flex items-center justify-between px-8">
+        {/* Left - Title Section */}
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">{getPageTitle()}</h2>
+          <p className="text-xs text-gray-500">Today, {today}</p>
         </div>
 
-        {/* Notifications */}
-        
-          
-           <NotificationDropdown />
-         
-        
+        {/* Right Section */}
+        <div className="flex items-center gap-5">
 
-        {/* Profile Avatar */}
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 size-10   transition"
-          >
-            <User className="h-5 w-5 text-slate-700" />
-          </button>
+          {/* Notifications */}
+          <NotificationDropdown />
 
-          {/* Dropdown Menu */}
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-40  bg-white shadow-lg border border-slate-200 py-2 animate-fadeIn">
-              <button
-                onClick={handleProfile}
-                className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
-              >
-                See Profile
-              </button>
-              <button
-                onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100"
-              >
-                Logout
-              </button>
-            </div>
-          )}
+          {/* Profile Avatar */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-10 h-10 rounded-full bg-blue-100 overflow-hidden border-2 border-white shadow-sm hover:border-blue-200 transition-colors"
+            >
+              <img src="https://i.pravatar.cc/150?img=11" alt="User" className="w-full h-full object-cover" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-semibold text-gray-900">Admin User</p>
+                  <p className="text-xs text-gray-500 mt-0.5">admin@sosasset.com</p>
+                </div>
+                <button
+                  onClick={handleProfile}
+                  className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <UserCircle className="w-4 h-4 text-gray-400" />
+                  View Profile
+                </button>
+                <div className="border-t border-gray-100 mt-1 pt-1">
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors rounded-lg mx-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

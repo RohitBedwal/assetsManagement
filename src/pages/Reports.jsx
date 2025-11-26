@@ -1,240 +1,180 @@
-import React, { useMemo, useState } from "react";
-import { Download, Filter, Calendar, RefreshCcw } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Download, RefreshCcw } from "lucide-react";
+import axios from "axios";
 
-const initialReports = [
-  { id: 1, name: "Device Inventory", desc: "A comprehensive list of all devices in the system.", date: "2024-01-15", status: "Completed" },
-  { id: 2, name: "Connectivity Status", desc: "Details on the connectivity status of all devices.", date: "2024-01-20", status: "Completed" },
-  { id: 3, name: "Vendor Performance", desc: "Reports on vendor performance and device reliability.", date: "2024-02-05", status: "Pending" },
-  { id: 4, name: "Security Audit", desc: "Security audit reports for all devices.", date: "2024-02-10", status: "Completed" },
-  { id: 5, name: "Compliance Report", desc: "Compliance reports for regulatory requirements.", date: "2024-02-15", status: "Completed" },
-  { id: 6, name: "Warranty Summary", desc: "Summary of warranty expiries by month.", date: "2024-03-01", status: "Completed" },
-  { id: 7, name: "Assignment Report", desc: "Which users have which devices assigned.", date: "2024-03-10", status: "Pending" },
-  { id: 8, name: "Usage Metrics", desc: "Device usage and uptime statistics.", date: "2024-03-18", status: "Completed" },
-];
+const API_URL = `${import.meta.env.VITE_BACKEND_URL}/api/notifications`;
 
-export default function Reports() {
-  const [reports, setReports] = useState(initialReports);
-  const [query, setQuery] = useState("");
-  const [sortAsc, setSortAsc] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+export default function Reports({ socket, isConnected }) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // 🔍 Filter
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return reports;
-    return reports.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.desc.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
-    );
-  }, [reports, query]);
+  useEffect(() => {
+    fetchNotifications();
 
-  // 🔢 Sort
-  const handleSort = () => {
-    const sorted = [...reports].sort((a, b) =>
-      sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-    );
-    setReports(sorted);
-    setSortAsc((s) => !s);
-    setCurrentPage(1);
+    // Listen for real-time notifications only if socket exists
+    if (socket && isConnected) {
+      const handleNewNotification = (notification) => {
+        setNotifications(prev => [notification, ...prev]);
+      };
+
+      socket.on("notification", handleNewNotification);
+      socket.on("newNotification", handleNewNotification);
+
+      // Cleanup function
+      return () => {
+        socket.off("notification", handleNewNotification);
+        socket.off("newNotification", handleNewNotification);
+      };
+    }
+  }, [socket, isConnected]);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(API_URL, {
+        withCredentials: false,
+      });
+      
+      // Handle the response structure from your backend
+      const data = res.data;
+      if (data. success && Array.isArray(data.data)) {
+        setNotifications(data.data);
+      } else if (Array.isArray(data)) {
+        setNotifications(data);
+      } else {
+        setNotifications([]);
+      }
+    } catch (err) {
+      console.error("Failed loading notifications:", err. message);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 📄 Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const pageReports = filtered.slice(startIndex, startIndex + itemsPerPage);
-
-  const handlePrev = () => setCurrentPage((p) => Math.max(1, p - 1));
-  const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
-
-  // 📥 Export CSV
   const handleExport = () => {
-    const headers = ["Report Name", "Description", "Created At", "Status"];
-    const rows = filtered.map((r) => [r.name, r.desc, r.date, r.status]);
-    const csvContent = [headers, ...rows]
-      .map((e) => e.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    if (! notifications.length) return;
+
+    const csvRows = [
+      ["Message", "Category", "Date"],
+      ...notifications.map((n) => [
+        `"${n.message. replace(/"/g, '""')}"`, // Escape quotes in CSV
+        n.type || "General",
+        new Date(n. createdAt).toLocaleString(),
+      ]),
+    ];
+
+    const csvContent = csvRows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "reports.csv";
+    a.download = `notifications_${new Date(). toISOString(). slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
-
-  // 🔄 Reset
-  const handleReset = () => {
-    setReports(initialReports);
-    setQuery("");
-    setCurrentPage(1);
-    setSortAsc(true);
   };
 
   return (
     <div className="space-y-6">
-      {/* 🧭 Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600">Reports</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Generate and export reports on your assets and performance.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Search */}
-          <input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Search reports..."
-            className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          />
-
-          {/* Export CSV */}
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </button>
-        </div>
+      {/* Connection Status */}
+      <div className="flex items-center gap-2 text-sm">
+        <div className={`w-2 h-2 rounded-full ${isConnected ?  'bg-green-500' : 'bg-red-500'}`}></div>
+        <span className={isConnected ?  'text-green-600' : 'text-red-600'}>
+          {isConnected ? 'Connected' : 'Disconnected'}
+        </span>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+      {/* Header */}
+      <div className="flex justify-between items-center flex-wrap gap-3">
+        <h1 className="text-2xl font-bold text-blue-600">Notifications</h1>
+
+        <div className="flex gap-2">
           <button
-            onClick={handleSort}
-            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+            onClick={handleExport}
+            disabled={! notifications.length}
+            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sort {sortAsc ? "A → Z" : "Z → A"}
+            <Download className="h-4 w-4" />
+            Export CSV ({notifications.length})
           </button>
 
           <button
-            onClick={() => alert("Filter functionality coming soon")}
-            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1"
+            onClick={fetchNotifications}
+            disabled={loading}
+            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 disabled:opacity-50"
           >
-            <Filter className="h-4 w-4" />
-            Filter
+            <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
-
-          <button
-            onClick={() => alert("Date picker coming soon")}
-            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1"
-          >
-            <Calendar className="h-4 w-4" />
-            Date
-          </button>
-
-          <button
-            onClick={handleReset}
-            className=" border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            Reset
-          </button>
-        </div>
-
-        <div className="text-sm text-slate-600">
-          Showing {Math.min(startIndex + 1, filtered.length)} –{" "}
-          {Math.min(startIndex + pageReports.length, filtered.length)} of {filtered.length}
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto border border-slate-200 bg-white shadow-sm rounded-lg">
         <table className="w-full text-sm">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Report Name</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Description</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Created At</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Status</th>
-              <th className="px-6 py-3 text-right text-gray-600 font-medium">Actions</th>
+              <th className="px-6 py-3 text-left font-medium text-gray-600">Message</th>
+              <th className="px-6 py-3 text-left font-medium text-gray-600">Category</th>
+              <th className="px-6 py-3 text-left font-medium text-gray-600">Date</th>
+              <th className="px-6 py-3 text-left font-medium text-gray-600">Status</th>
             </tr>
           </thead>
 
           <tbody>
-            {pageReports.map((r) => (
-              <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50 transition">
-                <td className="px-6 py-3 font-medium text-gray-800">{r.name}</td>
-                <td className="px-6 py-3 text-gray-600">{r.desc}</td>
-                <td className="px-6 py-3 text-gray-600">{r.date}</td>
-                <td className="px-6 py-3">
-                  <span
-                    className={`inline-flex items-center px-2 py-1  text-xs font-medium ${
-                      r.status === "Completed"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {r.status}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-right">
-                  <button className="text-blue-600 text-sm hover:underline">View</button>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="py-10 text-center text-gray-500">
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCcw className="h-4 w-4 animate-spin" />
+                    Loading notifications...
+                  </div>
                 </td>
               </tr>
-            ))}
-
-            {pageReports.length === 0 && (
+            ) : notifications.length ? (
+              notifications. map((n) => (
+                <tr key={n._id} className="border-t hover:bg-slate-50">
+                  <td className="px-6 py-3">{n.message}</td>
+                  <td className="px-6 py-3">
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium capitalize ${
+                      n.type === 'error' ? 'bg-red-100 text-red-800' :
+                      n.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                      n.type === 'success' ?  'bg-green-100 text-green-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {n.type || "General"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3">
+                    {new Date(n.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className={`inline-block w-2 h-2 rounded-full ${
+                      n. isRead ? 'bg-gray-300' : 'bg-blue-500'
+                    }`}></span>
+                    <span className="ml-2 text-xs text-gray-500">
+                      {n.isRead ? 'Read' : 'Unread'}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
                 <td
-                  colSpan={5}
-                  className="px-6 py-8 text-center text-sm text-gray-500 italic"
+                  colSpan={4}
+                  className="py-10 text-center text-gray-500 italic"
                 >
-                  No reports found
+                  No notifications found (last 30 days)
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-white">
-        <div className="text-sm text-slate-600">
-          Page {currentPage} of {totalPages}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrev}
-            disabled={currentPage === 1}
-            className="px-3 py-1.5 text-sm  border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          >
-            Previous
-          </button>
-
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1.5 text-sm  ${
-                currentPage === i + 1
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-          <button
-            onClick={handleNext}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1.5 text-sm  border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
       </div>
     </div>
   );

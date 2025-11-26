@@ -1,7 +1,7 @@
 import React from "react";
 
 import Dashboard from "../pages/Dashboard";
-import Links from "../pages/Links";
+import Links from "../pages/connectivity/Links.jsx";
 import Vendors from "../pages/Vendors/index";
 import Reports from "../pages/Reports";
 import Settings from "../pages/Settings";

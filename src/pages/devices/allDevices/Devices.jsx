@@ -5,10 +5,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import AddDeviceDrawer from "./AddDeviceDrawer";
 import AssignDeviceDrawer from "./AssignDeviceDrawer";
 import { ArrowLeft, Download } from "lucide-react";
+import { useNotifications } from "../../../context/NotificationContext";
 
 export default function CategoryDevices() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addNotification } = useNotifications();
 
   const [devices, setDevices] = useState([]);
   const [category, setCategory] = useState(null);
@@ -18,6 +20,9 @@ export default function CategoryDevices() {
   const [query, setQuery] = useState("");
   const [stats, setStats] = useState({ total: 0, assigned: 0, unassigned: 0 });
   const [loading, setLoading] = useState(false);
+  const [showUnassignConfirm, setShowUnassignConfirm] = useState(false);
+  const [deviceToUnassign, setDeviceToUnassign] = useState(null);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   const api = axios.create({
     baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
@@ -78,6 +83,11 @@ export default function CategoryDevices() {
       });
 
       toast.success(`✅ Device ${data.sku} added successfully`);
+      // Add notification
+      addNotification(
+        "New Device Added",
+        `Device "${data.sku}" (Serial: ${data.serial}) has been added to ${category?.name || "category"}.`
+      );
       setDrawerOpen(false);
     } catch (error) {
       console.error(error);
@@ -111,13 +121,19 @@ export default function CategoryDevices() {
     }
   };
 
-  const unassignDevice = async (deviceId) => {
+  const confirmUnassign = (device) => {
+    setDeviceToUnassign(device);
+    setShowUnassignConfirm(true);
+  };
+
+  const unassignDevice = async () => {
+    if (!deviceToUnassign) return;
+
     try {
-      const { data } = await api.put(`/devices/${deviceId}`, {
+      const { data } = await api.put(`/devices/${deviceToUnassign._id}`, {
         status: "IN_STOCK",
         projectName: null,
         assignedDate: null,
-        // warrantyEndDate: null, // up to you whether to clear or keep last value
       });
 
       setDevices((prev) => {
@@ -130,6 +146,9 @@ export default function CategoryDevices() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to unassign device");
+    } finally {
+      setShowUnassignConfirm(false);
+      setDeviceToUnassign(null);
     }
   };
 
@@ -139,6 +158,10 @@ export default function CategoryDevices() {
   };
 
   const handleDownloadCSV = () => {
+    setShowDownloadModal(true);
+  };
+
+  const confirmDownload = () => {
     const csvRows = [
       ["SKU", "Category", "Serial", "Status", "Project", "Assigned Date", "Warranty End"],
       ...devices.map((d) => [
@@ -157,6 +180,8 @@ export default function CategoryDevices() {
     link.href = URL.createObjectURL(blob);
     link.download = `${category?.name || "devices"}_data.csv`;
     link.click();
+    toast.success(`CSV file downloaded successfully!`);
+    setShowDownloadModal(false);
   };
 
   const getStatusPill = (status) => {
@@ -177,145 +202,148 @@ export default function CategoryDevices() {
 
   return (
     <div className="space-y-6">
-      {/* Back */}
-      <div className="flex items-center gap-2 mb-2">
-        <button
-          onClick={() => navigate("/devices")}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-      </div>
+      {/* Page Header */}
 
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600">{category?.name}</h1>
-          <p className="text-gray-500 text-sm mt-1">{category?.description}</p>
-
-          <div className="flex gap-3 mt-2 text-sm">
-            <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded">
-              Total: {stats.total}
-            </span>
-            <span className="bg-green-50 text-green-600 px-3 py-1 rounded">
-              In Stock: {stats.unassigned}
-            </span>
-            <span className="bg-amber-50 text-amber-600 px-3 py-1 rounded">
-              Deployed: {stats.assigned}
-            </span>
+      {/* Table Card */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/devices')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <h3 className="font-bold text-gray-800">{category?.name} <span className="text-sm font-light text-gray-500">• {category?.description}</span></h3>
           </div>
-        </div>
+            {/* buttons and search bar */}
+          <div className="flex justify-between items-center ">
+            
+           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          {/* Search */}
+          <div className="relative w-full sm:w-80">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by SKU, serial, or project"
+              className="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 shadow-sm"
+            />
+          </div>
 
-        <div className="flex items-center gap-3">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by SKU, serial, or project..."
-            className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          />
-
-          <button
-            onClick={handleDownloadCSV}
-            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
-          >
-            <Download className="h-4 w-4" />
-            Download CSV
-          </button>
-
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
-          >
-            Add Device
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">SKU</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Type</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Serial</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Status</th>
-              <th className="px-6 py-3 text-left text-gray-600 font-medium">Project</th>
-              <th className="px-6 py-3 text-gray-600 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((d) => (
-              <tr
-                key={d._id}
-                className="border-t border-slate-100 hover:bg-slate-50 transition"
-              >
-                <td className="px-6 py-3">{d.sku}</td>
-                {/* Type = Category name */}
-                <td className="px-6 py-3">{category?.name}</td>
-                <td className="px-6 py-3">{d.serial}</td>
-                <td className="px-6 py-3">
-                  <span
-                    className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded ${getStatusPill(
-                      d.status
-                    )}`}
-                  >
-                    {getStatusLabel(d.status)}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-gray-700">
-                  {d.projectName ? (
-                    <>
-                      {d.projectName}
-                      {d.assignedDate && (
-                        <>
-                          <p className="text-xs text-gray-500">
-                            Assigned:{" "}
-                            {new Date(d.assignedDate).toISOString().split("T")[0]}
-                          </p>
-                          {d.warrantyEndDate && (
-                            <p className="text-xs text-red-500">
-                              Warranty ends:{" "}
-                              {new Date(d.warrantyEndDate)
-                                .toISOString()
-                                .split("T")[0]}
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-gray-400 italic">Not assigned</span>
-                  )}
-                </td>
-                <td className="px-6 py-3 text-right">
-                  <button
-                    onClick={() => navigate(`/devices/info/${d._id}`)}
-                    className="text-blue-600 text-sm hover:underline mr-3"
-                  >
-                    View
-                  </button>
-                  {d.status === "IN_STOCK" ? (
-                    <button
-                      onClick={() => openAssignForm(d._id)}
-                      className="text-green-600 text-sm hover:underline"
-                    >
-                      Assign
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => unassignDevice(d._id)}
-                      className="text-red-500 text-sm hover:underline"
-                    >
-                      Unassign
-                    </button>
-                  )}
-                </td>
+          {/* Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleDownloadCSV}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition"
+            >
+              <Download className="w-4 h-4 mr-2 text-gray-500" />
+              Download CSV
+            </button>
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Add Device
+            </button>
+          </div>
+          </div>
+          </div>
+        </div>        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="text-xs text-gray-400 border-b border-gray-100">
+                <th className="pb-3 font-medium">SKU</th>
+                <th className="pb-3 font-medium">Type</th>
+                <th className="pb-3 font-medium">Serial</th>
+                <th className="pb-3 font-medium">Status</th>
+                <th className="pb-3 font-medium">Project / Assignment</th>
+                <th className="pb-3 font-medium text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="text-sm">
+              {filtered.map((d) => (
+                <tr
+                  key={d._id}
+                  className="group hover:bg-gray-50 transition-colors"
+                >
+                  <td className="py-4">
+                    <div className="font-bold text-gray-800">{d.sku}</div>
+                  </td>
+                  <td className="py-4 text-gray-500">{category?.name}</td>
+                  <td className="py-4 text-gray-500 font-mono text-xs">{d.serial}</td>
+                  <td className="py-4">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusPill(
+                        d.status
+                      )}`}
+                    >
+                      {getStatusLabel(d.status)}
+                    </span>
+                  </td>
+                  <td className="py-4">
+                    {d.projectName ? (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-800">{d.projectName}</span>
+                        {d.assignedDate && (
+                          <span className="text-xs text-gray-500">
+                            Assigned: {new Date(d.assignedDate).toISOString().split("T")[0]}
+                          </span>
+                        )}
+                        {d.warrantyEndDate && (
+                          <span className="text-xs text-red-500 font-medium">
+                            Warranty ends: {new Date(d.warrantyEndDate).toISOString().split("T")[0]}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">Not assigned</span>
+                    )}
+                  </td>
+                  <td className="py-4 text-right">
+                    <div className="inline-flex items-center gap-2">
+                      <button
+                        onClick={() => navigate(`/devices/info/${d._id}`)}
+                        className="border border-gray-200 rounded-lg px-3 py-1 text-xs text-gray-500 hover:bg-white transition-colors"
+                      >
+                        Details
+                      </button>
+                      {d.status === "IN_STOCK" ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAssignForm(d._id);
+                          }}
+                          className="border border-green-200 bg-green-50 rounded-lg px-3 py-1 text-xs text-green-600 hover:bg-green-100 transition-colors"
+                        >
+                          Assign
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmUnassign(d);
+                          }}
+                          className="border border-red-200 bg-red-50 rounded-lg px-3 py-1 text-xs text-red-600 hover:bg-red-100 transition-colors"
+                        >
+                          Unassign
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <AddDeviceDrawer
@@ -330,6 +358,78 @@ export default function CategoryDevices() {
         onClose={() => setAssignDrawerOpen(false)}
         onAssign={handleAssign}
       />
+
+      {/* Unassign Confirmation Modal */}
+      {showUnassignConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
+            onClick={() => setShowUnassignConfirm(false)}
+          />
+          <div className="relative bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirm Unassignment
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to unassign <span className="font-medium text-gray-900">{deviceToUnassign?.sku}</span> from <span className="font-medium text-gray-900">{deviceToUnassign?.projectName}</span>?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowUnassignConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={unassignDevice}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Unassign Device
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Confirmation Modal */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
+            onClick={() => setShowDownloadModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Download className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  Download CSV File?
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Download <span className="font-semibold text-gray-900">{category?.name}</span> devices data as CSV file.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDownload}
+                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

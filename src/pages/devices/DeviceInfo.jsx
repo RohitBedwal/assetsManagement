@@ -52,16 +52,16 @@ export default function DeviceInfo() {
     new Date(device.warrantyEndDate) < new Date();
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600"
+        className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
 
-      <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
+      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
         {/* Header */}
         <div className="flex flex-col justify-between gap-6">
           <div className="flex-1">
