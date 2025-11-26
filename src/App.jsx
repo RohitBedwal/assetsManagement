@@ -1,21 +1,13 @@
-// src/App.jsx
+import React from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
+// import ProtectedRoute from "./routes/ProtectedRoute";
 
-import Dashboard from "./pages/Dashboard";
-import Links from "./pages/Links";
-import Vendors from "./pages/Vendors/index";
-import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Login from "./pages/Login";
-
-import Categories from "./pages/devices/DeviceCategories";
-import CategoryDevices from "./pages/devices/Devices";
-import ScanDevice from "./pages/devices/ScanDevice";
-import DeviceInfo from "./pages/devices/DeviceInfo";
-import Profile from "./pages/Profile";
+// import { publicRoutes, protectedRoutes } from "./route";
+// import ProtectedRoute from "./routes/ProtectedRoute";
+import { protectedRoutes, publicRoutes } from "./routes/routes";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
   const location = useLocation();
@@ -49,94 +41,27 @@ function App() {
           }`}
         >
           <Routes>
-            {/* Public Route */}
-            <Route path="/login" element={<Login />} />
+            {/* Public / Open Routes */}
+            {publicRoutes.map((r) => {
+              const Component = r.component;
+              return <Route key={r.path} path={r.path} element={<Component />} />;
+            })}
 
             {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Devices Section */}
-            <Route
-              path="/devices"
-              element={
-                <ProtectedRoute>
-                  <Categories />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/devices/:id"
-              element={
-                <ProtectedRoute>
-                  <CategoryDevices />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/devices/:id/scan"
-              element={
-                <ProtectedRoute>
-                  <ScanDevice />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/devices/info/:deviceId"
-              element={
-                <ProtectedRoute>
-                  <DeviceInfo />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Other Pages */}
-            <Route
-              path="/links"
-              element={
-                <ProtectedRoute>
-                  <Links />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vendors"
-              element={
-                <ProtectedRoute>
-                  <Vendors />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+            {protectedRoutes.map((r) => {
+              const Component = r.component;
+              return (
+                <Route
+                  key={r.path}
+                  path={r.path}
+                  element={
+                    <ProtectedRoute>
+                      <Component />
+                    </ProtectedRoute>
+                  }
+                />
+              );
+            })}
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />

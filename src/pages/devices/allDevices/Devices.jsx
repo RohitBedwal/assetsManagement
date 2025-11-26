@@ -4,8 +4,7 @@ import toast from "react-hot-toast";
 import { useParams, useNavigate } from "react-router-dom";
 import AddDeviceDrawer from "./AddDeviceDrawer";
 import AssignDeviceDrawer from "./AssignDeviceDrawer";
-import { ArrowLeft, Camera, Download } from "lucide-react";
-
+import { ArrowLeft, Download } from "lucide-react";
 
 export default function CategoryDevices() {
   const { id } = useParams();
@@ -25,7 +24,6 @@ export default function CategoryDevices() {
     headers: { "Content-Type": "application/json" },
   });
 
-  // 🔹 Fetch category & devices
   const fetchCategoryAndDevices = async () => {
     try {
       const [catRes, devRes] = await Promise.all([
@@ -46,15 +44,13 @@ export default function CategoryDevices() {
     fetchCategoryAndDevices();
   }, [id]);
 
-  // 🔹 Calculate stats
   const calculateStats = (deviceList) => {
     const total = deviceList.length;
-    const assigned = deviceList.filter((d) => d.status === "outward").length;
-    const unassigned = total - assigned;
+    const assigned = deviceList.filter((d) => d.status === "DEPLOYED").length;
+    const unassigned = deviceList.filter((d) => d.status === "IN_STOCK").length;
     setStats({ total, assigned, unassigned });
   };
 
-  // 🔹 Filter by search
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return devices.filter(
@@ -65,7 +61,6 @@ export default function CategoryDevices() {
     );
   }, [devices, query]);
 
-  // 🔹 Add new device (only one API call)
   const handleAddDevice = async (form) => {
     if (loading) return;
     setLoading(true);
@@ -92,13 +87,13 @@ export default function CategoryDevices() {
     }
   };
 
-  // 🔹 Assign Device
   const handleAssign = async (form) => {
     try {
       const { data } = await api.put(`/devices/${selectedDeviceId}`, {
-        status: "outward",
+        status: "DEPLOYED",
         projectName: form.projectName,
         assignedDate: form.assignedDate,
+        warrantyEndDate: form.warrantyEndDate, // comes from AssignDeviceDrawer
       });
 
       setDevices((prev) => {
@@ -116,13 +111,13 @@ export default function CategoryDevices() {
     }
   };
 
-  // 🔹 Unassign Device
-  const unassignDevice = async (id) => {
+  const unassignDevice = async (deviceId) => {
     try {
-      const { data } = await api.put(`/devices/${id}`, {
-        status: "inward",
+      const { data } = await api.put(`/devices/${deviceId}`, {
+        status: "IN_STOCK",
         projectName: null,
         assignedDate: null,
+        // warrantyEndDate: null, // up to you whether to clear or keep last value
       });
 
       setDevices((prev) => {
@@ -133,27 +128,27 @@ export default function CategoryDevices() {
 
       toast.success(`Device ${data.sku} unassigned successfully`);
     } catch (err) {
+      console.error(err);
       toast.error("Failed to unassign device");
     }
   };
 
-  // 🔹 Assign Drawer Open
   const openAssignForm = (id) => {
     setSelectedDeviceId(id);
     setAssignDrawerOpen(true);
   };
 
-  // 🔹 CSV Export
   const handleDownloadCSV = () => {
     const csvRows = [
-      ["SKU", "Type", "Serial", "Status", "Project", "Assigned Date"],
+      ["SKU", "Category", "Serial", "Status", "Project", "Assigned Date", "Warranty End"],
       ...devices.map((d) => [
         d.sku,
-        d.type,
+        category?.name || "", // type = category
         d.serial,
         d.status,
         d.projectName || "Not assigned",
-        d.assignedDate || "-",
+        d.assignedDate ? new Date(d.assignedDate).toISOString().split("T")[0] : "-",
+        d.warrantyEndDate ? new Date(d.warrantyEndDate).toISOString().split("T")[0] : "-",
       ]),
     ];
     const csvContent = csvRows.map((r) => r.join(",")).join("\n");
@@ -164,9 +159,25 @@ export default function CategoryDevices() {
     link.click();
   };
 
+  const getStatusPill = (status) => {
+    if (status === "IN_STOCK") {
+      return "bg-green-100 text-green-700";
+    }
+    if (status === "DEPLOYED") {
+      return "bg-blue-100 text-blue-700";
+    }
+    return "bg-slate-100 text-slate-700";
+  };
+
+  const getStatusLabel = (status) => {
+    if (status === "IN_STOCK") return "In Stock";
+    if (status === "DEPLOYED") return "Deployed";
+    return status;
+  };
+
   return (
     <div className="space-y-6">
-      {/* 🔙 Back */}
+      {/* Back */}
       <div className="flex items-center gap-2 mb-2">
         <button
           onClick={() => navigate("/devices")}
@@ -177,28 +188,26 @@ export default function CategoryDevices() {
         </button>
       </div>
 
-      {/* 🧭 Header */}
+      {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-blue-600">{category?.name}</h1>
           <p className="text-gray-500 text-sm mt-1">{category?.description}</p>
 
-          {/* 📊 Stats */}
           <div className="flex gap-3 mt-2 text-sm">
             <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded">
               Total: {stats.total}
             </span>
             <span className="bg-green-50 text-green-600 px-3 py-1 rounded">
-              Inward: {stats.unassigned}
+              In Stock: {stats.unassigned}
             </span>
             <span className="bg-amber-50 text-amber-600 px-3 py-1 rounded">
-              Outward: {stats.assigned}
+              Deployed: {stats.assigned}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Search */}
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -206,16 +215,6 @@ export default function CategoryDevices() {
             className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
 
-          {/* Camera */}
-          {/* <button
-            onClick={() => navigate(`/devices/${id}/scan`)}
-            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
-          >
-            <Camera className="h-4 w-4" />
-            Scan
-          </button> */}
-
-          {/* Download CSV */}
           <button
             onClick={handleDownloadCSV}
             className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
@@ -224,7 +223,6 @@ export default function CategoryDevices() {
             Download CSV
           </button>
 
-          {/* Add Device */}
           <button
             onClick={() => setDrawerOpen(true)}
             className="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
@@ -234,7 +232,7 @@ export default function CategoryDevices() {
         </div>
       </div>
 
-      {/* 📋 Table */}
+      {/* Table */}
       <div className="overflow-x-auto border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-slate-50">
@@ -254,16 +252,16 @@ export default function CategoryDevices() {
                 className="border-t border-slate-100 hover:bg-slate-50 transition"
               >
                 <td className="px-6 py-3">{d.sku}</td>
-                <td className="px-6 py-3">{d.type}</td>
+                {/* Type = Category name */}
+                <td className="px-6 py-3">{category?.name}</td>
                 <td className="px-6 py-3">{d.serial}</td>
                 <td className="px-6 py-3">
                   <span
-                    className={`inline-flex items-center px-2 py-1 text-xs font-medium ${d.status === "inward"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-blue-100 text-blue-700"
-                      }`}
+                    className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded ${getStatusPill(
+                      d.status
+                    )}`}
                   >
-                    {d.status === "inward" ? "Inward" : "Outward"}
+                    {getStatusLabel(d.status)}
                   </span>
                 </td>
                 <td className="px-6 py-3 text-gray-700">
@@ -272,10 +270,16 @@ export default function CategoryDevices() {
                       {d.projectName}
                       {d.assignedDate && (
                         <>
-                          <p className="text-xs text-gray-500">{`Assigned: ${d.assignedDate}`}</p>
+                          <p className="text-xs text-gray-500">
+                            Assigned:{" "}
+                            {new Date(d.assignedDate).toISOString().split("T")[0]}
+                          </p>
                           {d.warrantyEndDate && (
                             <p className="text-xs text-red-500">
-                              Warranty ends: {d.warrantyEndDate}
+                              Warranty ends:{" "}
+                              {new Date(d.warrantyEndDate)
+                                .toISOString()
+                                .split("T")[0]}
                             </p>
                           )}
                         </>
@@ -292,7 +296,7 @@ export default function CategoryDevices() {
                   >
                     View
                   </button>
-                  {d.status === "inward" ? (
+                  {d.status === "IN_STOCK" ? (
                     <button
                       onClick={() => openAssignForm(d._id)}
                       className="text-green-600 text-sm hover:underline"
@@ -314,7 +318,6 @@ export default function CategoryDevices() {
         </table>
       </div>
 
-      {/* Drawers */}
       <AddDeviceDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}

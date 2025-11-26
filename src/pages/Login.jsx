@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail } from "lucide-react";
-import { url } from "../context/config";
+
+const API_URL = import.meta.env.VITE_BACKEND_URL; // ⬅ Using ENV
 
 const Login = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${url}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -25,10 +26,9 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Save JWT token
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("userInfo", JSON.stringify(data));
-        navigate("/"); // Redirect to dashboard/home
+        navigate("/");
       } else {
         setError(data.message || "Invalid credentials");
       }
@@ -42,13 +42,10 @@ const Login = () => {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 overflow-hidden">
-      {/* Floating blobs for soft background effect */}
       <div className="absolute top-20 left-32 w-72 h-72 bg-blue-200 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
       <div className="absolute bottom-20 right-32 w-72 h-72 bg-indigo-200 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
 
-      {/* Card */}
       <div className="relative z-10 w-full max-w-md bg-white/80 backdrop-blur-xl border border-slate-100 shadow-2xl p-8 space-y-8">
-        {/* Header */}
         <div className="text-center">
           <div className="flex items-center w-full justify-center mb-3">
             <img src="src/assets/logo.jpg" className="w-[100px]" alt="Logo" />
@@ -61,23 +58,15 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* Email */}
           <div className="relative">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-600 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-600 mb-1">
               Email Address
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               <input
-                id="email"
-                name="email"
                 type="email"
-                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -87,21 +76,14 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Password */}
           <div className="relative">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-600 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-600 mb-1">
               Password
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               <input
-                id="password"
-                name="password"
                 type="password"
-                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -111,31 +93,12 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="text-red-500 text-sm text-center font-medium bg-red-50 py-2">
               {error}
             </div>
           )}
 
-          {/* Remember Me + Forgot Password */}
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="text-blue-600 border-gray-300 focus:ring-blue-500"
-              />
-              Remember me
-            </label>
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Forgot password?
-            </a>
-          </div>
-
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -149,7 +112,6 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-4">
           © {new Date().getFullYear()} SOS Asset Management
         </p>

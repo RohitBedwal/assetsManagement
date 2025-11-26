@@ -9,7 +9,6 @@ import { Toaster } from 'react-hot-toast'
 createRoot(document.getElementById('root')).render(
   
     <DeviceProvider>
-
       <BrowserRouter>
         <App />
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
