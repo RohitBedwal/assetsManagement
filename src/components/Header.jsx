@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { User, Search, LogOut, UserCircle } from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
+import { UserCircleIcon } from "@heroicons/react/24/solid";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -71,7 +72,8 @@ export default function Header() {
               onClick={() => setMenuOpen(!menuOpen)}
               className="w-10 h-10 rounded-full bg-blue-100 overflow-hidden border-2 border-white shadow-sm hover:border-blue-200 transition-colors"
             >
-              <img src="https://i.pravatar.cc/150?img=11" alt="User" className="w-full h-full object-cover" />
+              <UserCircleIcon className=" text-gray-400" />
+
             </button>
 
             {/* Dropdown Menu */}
