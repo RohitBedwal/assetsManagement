@@ -9,6 +9,9 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { io } from "socket.io-client";
 import toast, { Toaster } from "react-hot-toast";
 
+// 👤 User Context
+import { UserProvider } from "./context/UserContext";
+
 // 🔌 Socket configuration with better error handling
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
@@ -130,96 +133,104 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f9fafb] flex flex-col">
-      {/* 🔔 Notification UI */}
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          // Default options for all toasts
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#10B981',
-              secondary: '#fff',
+    <UserProvider>
+      <div className="min-h-screen bg-[#f9fafb] flex flex-col">
+        {/* 🔔 Notification UI */}
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            // Default options for all toasts
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
             },
-          },
-          error: {
-            duration: 5000,
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#fff',
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: '#10B981',
+                secondary: '#fff',
+              },
             },
-          },
-        }}
-      />
+            error: {
+              duration: 5000,
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
 
-      {/* Connection Status (only show when disconnected or error) */}
-      {(! isConnected || connectionError) && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-2 text-center text-sm">
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-red-700">
-              {connectionError ?  `Connection Error: ${connectionError}` : 'Disconnected from server'}
-            </span>
-            {! isConnected && (
-              <button
-                onClick={() => socket.connect()}
-                className="ml-2 text-red-600 underline hover:text-red-800"
-              >
-                Retry
-              </button>
-            )}
+        {/* Connection Status (only show when disconnected or error) */}
+        {(! isConnected || connectionError) && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-2 text-center text-sm">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              <span className="text-red-700">
+                {connectionError ?  `Connection Error: ${connectionError}` : 'Disconnected from server'}
+              </span>
+              {! isConnected && (
+                <button
+                  onClick={() => socket.connect()}
+                  className="ml-2 text-red-600 underline hover:text-red-800"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Layout */}
+        <div className="flex flex-1 h-screen overflow-hidden">
+          {/* Sidebar */}
+          {!hideLayout && <Sidebar />}
+
+          {/* Main Content Area - Add margin to prevent overlap */}
+          <div className="flex-1 flex flex-col h-screen overflow-hidden" style={{ marginLeft: hideLayout ? '0' : 'var(--sidebar-width, 64px)' }}>
+            {/* Header */}
+            {!hideLayout && <Header socketConnected={isConnected} />}
+
+            {/* Page Routes */}
+            <main
+              className={`flex-1 bg-[#F5F7FB] overflow-y-auto p-4 md:p-6 lg:p-8 ${
+                hideLayout ? "w-full" : ""
+              }`}
+            >
+            <Routes>
+              {/* Public Routes */}
+              {publicRoutes.map((r, index) => {
+                console.log(`🌐 Loading public route: ${r.path}`);
+                return (
+                  <Route key={r.path} path={r.path} element={<r.component />} />
+                );
+              })}
+
+              {/* Protected Routes */}
+              {protectedRoutes.map((r, index) => {
+                console.log(`🔐 Loading protected route: ${r.path}`, r.roles ? `(roles: ${r.roles.join(', ')})` : '(no role restrictions)');
+                return (
+                  <Route
+                    key={r.path}
+                    path={r.path}
+                    element={
+                      <ProtectedRoute roles={r.roles}>
+                        <r.component socket={socket} isConnected={isConnected} />
+                      </ProtectedRoute>
+                    }
+                  />
+                );
+              })}
+
+              {/* Redirect unknown pages */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
           </div>
         </div>
-      )}
-
-      {/* Layout */}
-      <div className="flex flex-1 h-screen overflow-hidden">
-        {/* Sidebar */}
-        {!hideLayout && <Sidebar />}
-
-        {/* Main Content Area - Add margin to prevent overlap */}
-        <div className="flex-1 flex flex-col h-screen overflow-hidden" style={{ marginLeft: hideLayout ? '0' : 'var(--sidebar-width, 64px)' }}>
-          {/* Header */}
-          {!hideLayout && <Header socketConnected={isConnected} />}
-
-          {/* Page Routes */}
-          <main
-            className={`flex-1 bg-[#F5F7FB] overflow-y-auto p-4 md:p-6 lg:p-8 ${
-              hideLayout ? "w-full" : ""
-            }`}
-          >
-          <Routes>
-            {/* Public Routes */}
-            {publicRoutes.map((r) => (
-              <Route key={r.path} path={r.path} element={<r.component />} />
-            ))}
-
-            {/* Protected Routes */}
-            {protectedRoutes.map((r) => (
-              <Route
-                key={r.path}
-                path={r.path}
-                element={
-                  <ProtectedRoute>
-                    <r.component socket={socket} isConnected={isConnected} />
-                  </ProtectedRoute>
-                }
-              />
-            ))}
-
-            {/* Redirect unknown pages */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        </div>
       </div>
-    </div>
+    </UserProvider>
   );
 }
 

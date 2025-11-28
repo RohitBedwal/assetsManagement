@@ -11,11 +11,15 @@ import {
   Settings,
   ChevronRight,
   Users,
+  Package,
+  Shield,
 } from "lucide-react";
+import { useUser } from "../context/UserContext";
 
 export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { user, isAdmin } = useUser();
 
   // Check screen size for responsive behavior
   useEffect(() => {
@@ -31,14 +35,26 @@ export default function Sidebar() {
 
   const shouldExpand = isMobile ? isExpanded : true;
 
-  const navItems = [
+  // Base navigation items available to all users
+  const baseNavItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/devices", icon: HardDrive, label: "Devices" },
+    { path: "/rma/list", icon: Package, label: "My RMA" },
     { path: "/reports", icon: BarChart3, label: "Reports" },
     { path: "/links", icon: Link2, label: "Inventory" },
     { path: "/vendors", icon: Store, label: "Vendors" },
     { path: "/settings", icon: Users, label: "Settings" },
   ];
+
+  // Admin-only navigation items
+  const adminNavItems = [
+    { path: "/rma/admin", icon: Shield, label: "RMA Admin", adminOnly: true },
+  ];
+
+  // Combine navigation items based on user role
+  const navItems = isAdmin() 
+    ? [...baseNavItems, ...adminNavItems]
+    : baseNavItems;
 
 
   return (
@@ -73,23 +89,36 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-2">
-          {navItems.map(({ path, icon: Icon, label }) => (
+          {navItems.map(({ path, icon: Icon, label, adminOnly }) => (
             <NavLink
               key={path}
               to={path}
               end
               className={({ isActive }) =>
                 clsx(
-                  "flex items-center gap-4 rounded-xl transition-all text-sm font-medium",
+                  "flex items-center gap-4 rounded-xl transition-all text-sm font-medium relative",
                   shouldExpand ? "px-4 py-3" : "px-3 py-3 justify-center",
                   isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-blue-600"
+                    ? adminOnly 
+                      ? "bg-red-600 text-white shadow-lg shadow-red-200"
+                      : "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                    : adminOnly
+                      ? "text-red-600 hover:bg-red-50 hover:text-red-700"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-blue-600"
                 )
               }
             >
               <Icon className="h-4 w-4 flex-shrink-0" />
-              {shouldExpand && <span className="whitespace-nowrap">{label}</span>}
+              {shouldExpand && (
+                <span className="whitespace-nowrap flex items-center gap-2">
+                  {label}
+                  {adminOnly && (
+                    <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
+                      ADMIN
+                    </span>
+                  )}
+                </span>
+              )}
             </NavLink>
           ))}
 

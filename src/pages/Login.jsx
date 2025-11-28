@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail } from "lucide-react";
+import { useUser } from "../context/UserContext";
 
 const API_URL = import.meta.env.VITE_BACKEND_URL; // ⬅ Using ENV
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,8 +28,8 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("authToken", data.token);
-        localStorage.setItem("userInfo", JSON.stringify(data));
+        // Use the UserContext login function
+        login(data);
         navigate("/");
       } else {
         setError(data.message || "Invalid credentials");
