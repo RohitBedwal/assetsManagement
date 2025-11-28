@@ -5,24 +5,15 @@ export default function Links() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Connectivity Links</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Manage and monitor connectivity links for your assets.
-          </p>
-        </div>
-        <button className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm">
-          <Plus className="h-4 w-4" />
-          Add Link
-        </button>
-      </div>
-
+      
       {/* Table Card */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-6">
           <h3 className="font-bold text-gray-800">All Connectivity Links</h3>
-          <i className="text-gray-400 cursor-pointer">⋮</i>
+          <button className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm">
+          <Plus className="h-4 w-4" />
+          Add Link
+        </button>
         </div>
         
         <div className="overflow-x-auto">

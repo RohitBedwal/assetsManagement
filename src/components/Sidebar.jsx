@@ -43,6 +43,7 @@ export default function Sidebar() {
     { path: "/reports", icon: BarChart3, label: "Reports" },
     { path: "/links", icon: Link2, label: "Inventory" },
     { path: "/vendors", icon: Store, label: "Vendors" },
+    { path: "/reports", icon: BarChart3, label: "Reports" },
     { path: "/settings", icon: Users, label: "Settings" },
   ];
 
