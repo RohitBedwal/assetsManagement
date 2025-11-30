@@ -18,6 +18,9 @@ import RMASubmit from "../pages/RMA/RMASubmit";
 import RMAList from "../pages/RMA/RMAList";
 import RMAAdmin from "../pages/RMA/RMAAdmin";
 
+// OEM Page
+import OEM from "../pages/OEM/index";
+
 // Test Page for routing debugging
 import TestPage from "../pages/TestPage";
 
@@ -69,6 +72,10 @@ export const protectedRoutes = [
   {
     path: "/vendors",
     component: Vendors,
+  },
+  {
+    path: "/oem",
+    component: OEM,
   },
   {
     path: "/reports",

@@ -93,8 +93,8 @@ const Dashboard = () => {
 
   // Calculate metrics
   const totalDevices = devices.length;
-  const activeDevices = devices.filter(d => d.status === 'DEPLOYED').length;
-  const inStockDevices = devices.filter(d => d.status === 'IN_STOCK').length;
+  const activeDevices = devices.filter(d => d.status === 'outward').length;
+  const inStockDevices = devices.filter(d => d.status === 'inward').length;
   const totalProjects = [...new Set(devices.filter(d => d.projectName).map(d => d.projectName))].length;
 
   // ✅ CSV Export Function
@@ -146,7 +146,7 @@ const Dashboard = () => {
               <Clipboard className="w-5 h-5" />
             </div>
             <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-1 rounded">
-              {activeDevices} deployed
+              {activeDevices} outward
             </span>
           </div>
           <h3 className="text-2xl font-bold text-gray-800">
@@ -182,14 +182,14 @@ const Dashboard = () => {
             <div className="flex items-center justify-between bg-white/10 p-2.5 rounded-lg backdrop-blur-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                <span className="text-xs font-medium">Inward (In Stock)</span>
+                <span className="text-xs font-medium">Inward</span>
               </div>
               <span className="text-sm font-bold">{inStockDevices}</span>
             </div>
             <div className="flex items-center justify-between bg-white/10 p-2.5 rounded-lg backdrop-blur-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                <span className="text-xs font-medium">Outward (Deployed)</span>
+                <span className="text-xs font-medium">Outward</span>
               </div>
               <span className="text-sm font-bold">{activeDevices}</span>
             </div>

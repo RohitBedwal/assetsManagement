@@ -3,8 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useParams, useNavigate } from "react-router-dom";
 import AddDeviceDrawer from "./AddDeviceDrawer";
-import AssignDeviceDrawer from "./AssignDeviceDrawer";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Edit } from "lucide-react";
 import { useNotifications } from "../../../context/NotificationContext";
 
 export default function CategoryDevices() {
@@ -15,8 +14,7 @@ export default function CategoryDevices() {
   const [devices, setDevices] = useState([]);
   const [category, setCategory] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [assignDrawerOpen, setAssignDrawerOpen] = useState(false);
-  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+  const [editingDevice, setEditingDevice] = useState(null);
   const [query, setQuery] = useState("");
   const [stats, setStats] = useState({ total: 0, assigned: 0, unassigned: 0 });
   const [loading, setLoading] = useState(false);
@@ -51,8 +49,8 @@ export default function CategoryDevices() {
 
   const calculateStats = (deviceList) => {
     const total = deviceList.length;
-    const assigned = deviceList.filter((d) => d.status === "DEPLOYED").length;
-    const unassigned = deviceList.filter((d) => d.status === "IN_STOCK").length;
+    const assigned = deviceList.filter((d) => d.status === "outward").length;
+    const unassigned = deviceList.filter((d) => d.status === "inward").length;
     setStats({ total, assigned, unassigned });
   };
 
@@ -71,54 +69,57 @@ export default function CategoryDevices() {
     setLoading(true);
 
     try {
-      const { data } = await api.post("/devices", {
-        ...form,
-        categoryId: id,
-      });
+      if (editingDevice) {
+        // Update existing device
+        const { data } = await api.put(`/devices/${editingDevice._id}`, {
+          ...form,
+          categoryId: id,
+        });
 
-      setDevices((prev) => {
-        const updated = [data, ...prev];
-        calculateStats(updated);
-        return updated;
-      });
+        setDevices((prev) => {
+          const updated = prev.map((d) => (d._id === data._id ? data : d));
+          calculateStats(updated);
+          return updated;
+        });
 
-      toast.success(`✅ Device ${data.sku} added successfully`);
-      // Add notification
-      addNotification(
-        "New Device Added",
-        `Device "${data.sku}" (Serial: ${data.serial}) has been added to ${category?.name || "category"}.`
-      );
+        toast.success(`✅ Device ${data.sku} updated successfully`);
+        addNotification(
+          "Device Updated",
+          `Device "${data.sku}" (Serial: ${data.serial}) has been updated.`
+        );
+      } else {
+        // Add new device
+        const { data } = await api.post("/devices", {
+          ...form,
+          categoryId: id,
+        });
+
+        setDevices((prev) => {
+          const updated = [data, ...prev];
+          calculateStats(updated);
+          return updated;
+        });
+
+        toast.success(`✅ Device ${data.sku} added successfully`);
+        addNotification(
+          "New Device Added",
+          `Device "${data.sku}" (Serial: ${data.serial}) has been added to ${category?.name || "category"}.`
+        );
+      }
+      
       setDrawerOpen(false);
+      setEditingDevice(null);
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Failed to add device");
+      toast.error(error.response?.data?.message || `Failed to ${editingDevice ? 'update' : 'add'} device`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAssign = async (form) => {
-    try {
-      const { data } = await api.put(`/devices/${selectedDeviceId}`, {
-        status: "DEPLOYED",
-        projectName: form.projectName,
-        assignedDate: form.assignedDate,
-        warrantyEndDate: form.warrantyEndDate, // comes from AssignDeviceDrawer
-      });
-
-      setDevices((prev) => {
-        const updated = prev.map((d) => (d._id === data._id ? data : d));
-        calculateStats(updated);
-        return updated;
-      });
-
-      toast.success(`Device assigned to ${data.projectName}`);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to assign device");
-    } finally {
-      setAssignDrawerOpen(false);
-    }
+  const handleEditClick = (device) => {
+    setEditingDevice(device);
+    setDrawerOpen(true);
   };
 
   const confirmUnassign = (device) => {
@@ -131,7 +132,7 @@ export default function CategoryDevices() {
 
     try {
       const { data } = await api.put(`/devices/${deviceToUnassign._id}`, {
-        status: "IN_STOCK",
+        status: "inward",
         projectName: null,
         assignedDate: null,
       });
@@ -150,11 +151,6 @@ export default function CategoryDevices() {
       setShowUnassignConfirm(false);
       setDeviceToUnassign(null);
     }
-  };
-
-  const openAssignForm = (id) => {
-    setSelectedDeviceId(id);
-    setAssignDrawerOpen(true);
   };
 
   const handleDownloadCSV = () => {
@@ -185,18 +181,18 @@ export default function CategoryDevices() {
   };
 
   const getStatusPill = (status) => {
-    if (status === "IN_STOCK") {
+    if (status === "inward") {
       return "bg-green-100 text-green-700";
     }
-    if (status === "DEPLOYED") {
+    if (status === "outward") {
       return "bg-blue-100 text-blue-700";
     }
     return "bg-slate-100 text-slate-700";
   };
 
   const getStatusLabel = (status) => {
-    if (status === "IN_STOCK") return "In Stock";
-    if (status === "DEPLOYED") return "Deployed";
+    if (status === "inward") return "Inward";
+    if (status === "outward") return "Outward";
     return status;
   };
 
@@ -295,12 +291,12 @@ export default function CategoryDevices() {
                         <span className="text-sm font-bold text-gray-800">{d.projectName}</span>
                         {d.assignedDate && (
                           <span className="text-xs text-gray-500">
-                            Assigned: {new Date(d.assignedDate).toISOString().split("T")[0]}
+                            Assigned: {new Date(d.assignedDate).toLocaleDateString()}
                           </span>
                         )}
                         {d.warrantyEndDate && (
                           <span className="text-xs text-red-500 font-medium">
-                            Warranty ends: {new Date(d.warrantyEndDate).toISOString().split("T")[0]}
+                            Warranty ends: {new Date(d.warrantyEndDate).toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -316,27 +312,16 @@ export default function CategoryDevices() {
                       >
                         Details
                       </button>
-                      {d.status === "IN_STOCK" ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openAssignForm(d._id);
-                          }}
-                          className="border border-green-200 bg-green-50 rounded-lg px-3 py-1 text-xs text-green-600 hover:bg-green-100 transition-colors"
-                        >
-                          Assign
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmUnassign(d);
-                          }}
-                          className="border border-red-200 bg-red-50 rounded-lg px-3 py-1 text-xs text-red-600 hover:bg-red-100 transition-colors"
-                        >
-                          Unassign
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(d);
+                        }}
+                        className="border border-blue-200 bg-blue-50 rounded-lg px-3 py-1 text-xs text-blue-600 hover:bg-blue-100 transition-colors flex items-center gap-1"
+                      >
+                        <Edit className="h-3 w-3" />
+                        Edit
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -348,15 +333,13 @@ export default function CategoryDevices() {
 
       <AddDeviceDrawer
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false);
+          setEditingDevice(null);
+        }}
         onAdd={handleAddDevice}
         loading={loading}
-      />
-
-      <AssignDeviceDrawer
-        open={assignDrawerOpen}
-        onClose={() => setAssignDrawerOpen(false)}
-        onAssign={handleAssign}
+        editingDevice={editingDevice}
       />
 
       {/* Unassign Confirmation Modal */}

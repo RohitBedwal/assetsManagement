@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { User, Lock, Bell, Palette, Shield } from "lucide-react";
+import { useUser } from "../context/UserContext";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("account");
+  const { user } = useUser();
 
   return (
     <div className="space-y-6">
@@ -41,50 +43,84 @@ export default function Settings() {
       </div>
 
       {/* 🔧 Tab Content */}
-      <div className="bg-white border border-slate-200 shadow-sm p-6">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
         {activeTab === "account" && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600 mb-2">
-              Account Settings
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              Profile Settings
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Full Name</label>
-                <input
-                  type="text"
-                  defaultValue="Rohit Bedwal"
-                  className="mt-1 w-full border border-slate-200  px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500"
-                />
+            
+            {/* Profile Section */}
+            <div className="flex items-center gap-6 pb-6 border-b border-gray-100">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                  {user?.name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full border-2 border-blue-500 flex items-center justify-center hover:bg-blue-50 transition">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Email</label>
-                <input
-                  type="email"
-                  defaultValue="rohit@example.com"
-                  className="mt-1 w-full border border-slate-200  px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Phone Number</label>
-                <input
-                  type="text"
-                  defaultValue="+91 9876543210"
-                  className="mt-1 w-full border border-slate-200  px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Role</label>
-                <input
-                  type="text"
-                  value="Admin"
-                  disabled
-                  className="mt-1 w-full border border-slate-100 bg-gray-50  px-3 py-2 text-sm text-gray-500 cursor-not-allowed"
-                />
+                <h3 className="text-xl font-bold text-gray-800">{user?.name || user?.username || "User"}</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1) || "User"} • {user?.email || "No email"}
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                    Active
+                  </span>
+                  <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                    Verified
+                  </span>
+                </div>
               </div>
             </div>
-            <button className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-semibold  hover:bg-blue-700 transition">
-              Save Changes
-            </button>
+
+            {/* Account Information */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">Account Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                  <div className="w-full border border-slate-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700">
+                    {user?.name || user?.username || "Not specified"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                  <div className="w-full border border-slate-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700">
+                    {user?.username || "Not specified"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                  <div className="w-full border border-slate-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700">
+                    {user?.email || "Not specified"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                  <div className="w-full border border-slate-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700">
+                    {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1) || "User"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                  <div className="w-full border border-slate-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700">
+                    {user?.department || "Not specified"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">User ID</label>
+                  <div className="w-full border border-slate-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700">
+                    {user?.employeeId || user?._id || "Not specified"}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

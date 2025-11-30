@@ -13,6 +13,7 @@ import {
   Users,
   Package,
   Shield,
+  Building2,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
@@ -41,9 +42,9 @@ export default function Sidebar() {
     { path: "/devices", icon: HardDrive, label: "Devices" },
     { path: "/rma/list", icon: Package, label: "My RMA" },
     { path: "/reports", icon: BarChart3, label: "Reports" },
-    { path: "/links", icon: Link2, label: "Inventory" },
+    // { path: "/links", icon: Link2, label: "Inventory" },
     { path: "/vendors", icon: Store, label: "Vendors" },
-    { path: "/reports", icon: BarChart3, label: "Reports" },
+    // { path: "/oem", icon: Building2, label: "OEM" },
     { path: "/settings", icon: Users, label: "Settings" },
   ];
 

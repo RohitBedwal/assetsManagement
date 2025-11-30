@@ -135,78 +135,64 @@ export default function Vendors() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600">Vendors</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Manage suppliers and vendor contacts for your assets.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Search vendors, contact or email..."
-            className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          />
-
-          <button
-            onClick={handleDownloadCSV}
-            className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 transition"
-          >
-            <Download className="h-4 w-4" />
-            Download CSV
-          </button>
-
-          <button
-            onClick={() => {
-              setSelectedVendor(null);
-              setOpenDrawer(true);
-            }}
-            className="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
-          >
-            New Vendor
-          </button>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSort}
-            className="border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            Sort {sortAsc ? "A → Z" : "Z → A"}
-          </button>
-          <button
-            onClick={() => {
-              fetchVendors();
-              setQuery("");
-              setCurrentPage(1);
-            }}
-            className="border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            Reset
-          </button>
-        </div>
-
-        <div className="text-sm text-slate-600">
-          Showing {Math.min(startIndex + 1, filtered.length)} –{" "}
-          {Math.min(startIndex + pageVendors.length, filtered.length)} of {filtered.length}
-        </div>
-      </div>
-
       {/* Vendors Table Card */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold text-gray-800">All Vendors</h3>
-          <i className="text-gray-400 cursor-pointer">⋮</i>
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <h3 className="font-bold text-gray-800 text-xl">All Vendors</h3>
+          <div className="flex gap-3 items-center flex-wrap">
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search vendors, contact or email..."
+              className="border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
+            />
+
+            <button
+              onClick={handleSort}
+              className="border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition"
+            >
+              Sort {sortAsc ? "A → Z" : "Z → A"}
+            </button>
+
+            <button
+              onClick={() => {
+                fetchVendors();
+                setQuery("");
+                setCurrentPage(1);
+              }}
+              className="border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition"
+            >
+              Reset
+            </button>
+
+            <button
+              onClick={handleDownloadCSV}
+              className="flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-slate-50 rounded-lg transition"
+            >
+              <Download className="h-4 w-4" />
+              Download CSV
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedVendor(null);
+                setOpenDrawer(true);
+              }}
+              className={`px-6 py-2.5 text-sm font-semibold text-white rounded-lg transition-all ${
+                  loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 shadow-sm"
+                }`}
+            >
+              New Vendor
+            </button>
+          </div>
+        </div>
+        
+        <div className="mb-4 text-sm text-slate-600">
+          Showing {Math.min(startIndex + 1, filtered.length)} –{" "}
+          {Math.min(startIndex + pageVendors.length, filtered.length)} of {filtered.length}
         </div>
         
         <div className="overflow-x-auto">
@@ -261,44 +247,44 @@ export default function Vendors() {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Pagination */}
-      <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-white">
-        <div className="text-sm text-slate-600">
-          Page {currentPage} of {totalPages}
-        </div>
+        {/* Pagination */}
+        <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-sm text-slate-600">
+            Page {currentPage} of {totalPages}
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrev}
-            disabled={currentPage === 1}
-            className="px-3 py-1.5 text-sm border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          >
-            Previous
-          </button>
-
-          {[...Array(totalPages)].map((_, i) => (
+          <div className="flex items-center gap-2">
             <button
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1.5 text-sm ${
-                currentPage === i + 1
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
-              }`}
+              onClick={handlePrev}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
-              {i + 1}
+              Previous
             </button>
-          ))}
 
-          <button
-            onClick={handleNext}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1.5 text-sm border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          >
-            Next
-          </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1.5 text-sm rounded-lg transition ${
+                  currentPage === i + 1
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+
+            <button
+              onClick={handleNext}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 

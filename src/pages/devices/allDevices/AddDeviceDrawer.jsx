@@ -1,17 +1,18 @@
 // src/pages/devices/Category/AddDeviceDrawer.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-export default function AddDeviceDrawer({ open, onClose, onAdd, loading }) {
+export default function AddDeviceDrawer({ open, onClose, onAdd, loading, editingDevice }) {
   const [form, setForm] = useState({
     sku: "",
     serial: "",
     status: "inward",
-    assignedTo: "",
+    projectName: "",
     purchaseDate: "",
     warrantyEndDate: "",
     amcExpiryDate: "",
     vendor: "",
     purchaseOrderNumber: "",
+    invoiceNumber: "",
     installedAtSite: "",
     ipAddress: "",
     macAddress: "",
@@ -23,15 +24,127 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading }) {
   });
 
   const [error, setError] = useState("");
+  const [invoiceFile, setInvoiceFile] = useState(null);
+  const [invoicePreview, setInvoicePreview] = useState(null);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingDevice) {
+      setForm({
+        sku: editingDevice.sku || "",
+        serial: editingDevice.serial || "",
+        status: editingDevice.status || "inward",
+        projectName: editingDevice.projectName || "",
+        purchaseDate: editingDevice.purchaseDate?.split('T')[0] || "",
+        warrantyEndDate: editingDevice.warrantyEndDate?.split('T')[0] || "",
+        amcExpiryDate: editingDevice.amcExpiryDate?.split('T')[0] || "",
+        vendor: editingDevice.vendor || "",
+        purchaseOrderNumber: editingDevice.purchaseOrderNumber || "",
+        invoiceNumber: editingDevice.invoiceNumber || "",
+        installedAtSite: editingDevice.installedAtSite || "",
+        ipAddress: editingDevice.ipAddress || "",
+        macAddress: editingDevice.macAddress || "",
+        firmwareOSVersion: editingDevice.firmwareOSVersion || "",
+        rackId: editingDevice.rackId || "",
+        rackUnit: editingDevice.rackUnit || "",
+        dataCenter: editingDevice.dataCenter || "",
+        notes: editingDevice.notes || "",
+      });
+      setInvoicePreview(editingDevice.invoiceAttachment || null);
+      setInvoiceFile(null);
+    } else {
+      // Reset form for new device
+      setForm({
+        sku: "",
+        serial: "",
+        status: "inward",
+        projectName: "",
+        purchaseDate: "",
+        warrantyEndDate: "",
+        amcExpiryDate: "",
+        vendor: "",
+        purchaseOrderNumber: "",
+        invoiceNumber: "",
+        installedAtSite: "",
+        ipAddress: "",
+        macAddress: "",
+        firmwareOSVersion: "",
+        rackId: "",
+        rackUnit: "",
+        dataCenter: "",
+        notes: "",
+      });
+      setInvoiceFile(null);
+      setInvoicePreview(null);
+    }
+  }, [editingDevice]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     const numberFields = ["rackUnit"];
-  if (numberFields.includes(name)) {
-    return setForm((prev) => ({ ...prev, [name]: value ? Number(value) : "" }));
-  }
-    setForm((prev) => ({ ...prev, [name]: value }));
+    
+    // Handle number fields
+    if (numberFields.includes(name)) {
+      return setForm((prev) => ({ ...prev, [name]: value ? Number(value) : "" }));
+    }
+    
+    // Clear outward-related fields when status changes to inward
+    if (name === "status" && value === "inward") {
+      setForm((prev) => ({
+        ...prev,
+        [name]: value,
+        // Clear outward-specific fields
+        projectName: "",
+        assignedDate: "",
+        installedAtSite: "",
+        ipAddress: "",
+        macAddress: "",
+        firmwareOSVersion: "",
+        rackId: "",
+        rackUnit: "",
+        dataCenter: "",
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
+    
     setError("");
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type (PDF or images)
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        setError("Please upload a valid file (PDF, JPG, PNG)");
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File size must be less than 5MB");
+        return;
+      }
+      
+      setInvoiceFile(file);
+      
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setInvoicePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setInvoicePreview(file.name);
+      }
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setInvoiceFile(null);
+    setInvoicePreview(null);
   };
 
   const handleSubmit = (e) => {
@@ -40,7 +153,19 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading }) {
       setError("SKU and Serial Number are required!");
       return;
     }
-    onAdd(form);
+    
+    // Automatically set assignedDate when status is outward
+    const formData = { ...form };
+    if (form.status === "outward" && (!editingDevice || editingDevice.status !== "outward")) {
+      formData.assignedDate = new Date().toISOString();
+    }
+    
+    // Add invoice file if present
+    if (invoiceFile) {
+      formData.invoiceFile = invoiceFile;
+    }
+    
+    onAdd(formData);
   };
 
   return (
@@ -63,8 +188,8 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading }) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-8 py-4 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Add New Device</h3>
-            <p className="text-sm text-gray-600 mt-0.5">Fill in the device information below</p>
+            <h3 className="text-xl font-bold text-gray-900">{editingDevice ? 'Edit Device' : 'Add New Device'}</h3>
+            <p className="text-sm text-gray-600 mt-0.5">{editingDevice ? 'Update the device information below' : 'Fill in the device information below'}</p>
           </div>
           <button 
             onClick={onClose} 
@@ -105,51 +230,59 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading }) {
                   options={["inward", "outward"]}
                   required
                 />
-                <InputField label="Assigned To" name="assignedTo" value={form.assignedTo} onChange={handleChange} />
+                {form.status === "outward" && (
+                  <InputField label="Project Name" name="projectName" value={form.projectName} onChange={handleChange} />
+                )}
               </div>
             </div>
 
-            {/* Purchase & Vendor Details */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="w-1 h-4 bg-green-600 rounded-full"></span>
-                Purchase & Vendor Details
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <InputField label="Vendor" name="vendor" value={form.vendor} onChange={handleChange} />
-                <InputField label="PO Number" name="purchaseOrderNumber" value={form.purchaseOrderNumber} onChange={handleChange} />
-                <DateField label="Purchase Date" name="purchaseDate" value={form.purchaseDate} onChange={handleChange} />
-                <DateField label="Warranty End Date" name="warrantyEndDate" value={form.warrantyEndDate} onChange={handleChange} />
-                <DateField label="AMC Expiry Date" name="amcExpiryDate" value={form.amcExpiryDate} onChange={handleChange} />
+            {/* Purchase & Vendor Details - Only for inward status */}
+            {form.status === "inward" && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-green-600 rounded-full"></span>
+                  Purchase & Vendor Details
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <InputField label="Vendor" name="vendor" value={form.vendor} onChange={handleChange} />
+                  <InputField label="PO Number" name="purchaseOrderNumber" value={form.purchaseOrderNumber} onChange={handleChange} />
+                  <DateField label="Purchase Date" name="purchaseDate" value={form.purchaseDate} onChange={handleChange} />
+                  <DateField label="Warranty End Date" name="warrantyEndDate" value={form.warrantyEndDate} onChange={handleChange} />
+                  <DateField label="AMC Expiry Date" name="amcExpiryDate" value={form.amcExpiryDate} onChange={handleChange} />
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Location & Installation */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="w-1 h-4 bg-purple-600 rounded-full"></span>
-                Location & Installation
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <InputField label="Installed At" name="installedAtSite" value={form.installedAtSite} onChange={handleChange} />
-                <InputField label="Data Center" name="dataCenter" value={form.dataCenter} onChange={handleChange} />
-                <InputField label="Rack ID" name="rackId" value={form.rackId} onChange={handleChange} />
-                <InputField label="Rack Unit" name="rackUnit" value={form.rackUnit} onChange={handleChange} />
+            {/* Location & Installation - Only for outward status */}
+            {form.status === "outward" && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-blue-600 rounded-full"></span>
+                  Location & Installation
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <InputField label="Installed At" name="installedAtSite" value={form.installedAtSite} onChange={handleChange} />
+                  <InputField label="Data Center" name="dataCenter" value={form.dataCenter} onChange={handleChange} />
+                  <InputField label="Rack ID" name="rackId" value={form.rackId} onChange={handleChange} />
+                  <InputField label="Rack Unit" name="rackUnit" value={form.rackUnit} onChange={handleChange} />
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Network Configuration */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="w-1 h-4 bg-orange-600 rounded-full"></span>
-                Network Configuration
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <InputField label="IP Address" name="ipAddress" value={form.ipAddress} onChange={handleChange} />
-                <InputField label="MAC Address" name="macAddress" value={form.macAddress} onChange={handleChange} />
-                <InputField label="Firmware / OS Version" name="firmwareOSVersion" value={form.firmwareOSVersion} onChange={handleChange} />
+            {/* Network Configuration - Only for outward status */}
+            {form.status === "outward" && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-blue-600 rounded-full"></span>
+                  Network Configuration
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <InputField label="IP Address" name="ipAddress" value={form.ipAddress} onChange={handleChange} />
+                  <InputField label="MAC Address" name="macAddress" value={form.macAddress} onChange={handleChange} />
+                  <InputField label="Firmware / OS Version" name="firmwareOSVersion" value={form.firmwareOSVersion} onChange={handleChange} />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Notes */}
             <div>
@@ -191,10 +324,10 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading }) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Saving...
+                  {editingDevice ? 'Updating...' : 'Saving...'}
                 </span>
               ) : (
-                "Add Device"
+                `${editingDevice ? 'Update Device' : 'Add Device'}`
               )}
             </button>
           </div>
