@@ -24,12 +24,11 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading, editing
   });
 
   const [error, setError] = useState("");
-  const [invoiceFile, setInvoiceFile] = useState(null);
-  const [invoicePreview, setInvoicePreview] = useState(null);
 
-  // Populate form when editing
+  // Populate form when editing device is set
   useEffect(() => {
     if (editingDevice) {
+      // Editing existing device
       setForm({
         sku: editingDevice.sku || "",
         serial: editingDevice.serial || "",
@@ -50,10 +49,13 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading, editing
         dataCenter: editingDevice.dataCenter || "",
         notes: editingDevice.notes || "",
       });
-      setInvoicePreview(editingDevice.invoiceAttachment || null);
-      setInvoiceFile(null);
-    } else {
-      // Reset form for new device
+    }
+  }, [editingDevice]);
+
+  // Clear form when drawer closes after successful submission
+  useEffect(() => {
+    if (!open && !editingDevice) {
+      // Drawer closed and no device being edited - reset form
       setForm({
         sku: "",
         serial: "",
@@ -74,10 +76,9 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading, editing
         dataCenter: "",
         notes: "",
       });
-      setInvoiceFile(null);
-      setInvoicePreview(null);
+      setError("");
     }
-  }, [editingDevice]);
+  }, [open, editingDevice]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -111,42 +112,6 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading, editing
     setError("");
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type (PDF or images)
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-      if (!validTypes.includes(file.type)) {
-        setError("Please upload a valid file (PDF, JPG, PNG)");
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("File size must be less than 5MB");
-        return;
-      }
-      
-      setInvoiceFile(file);
-      
-      // Create preview for images
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setInvoicePreview(reader.result);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setInvoicePreview(file.name);
-      }
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setInvoiceFile(null);
-    setInvoicePreview(null);
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.sku.trim() || !form.serial.trim()) {
@@ -160,11 +125,7 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading, editing
       formData.assignedDate = new Date().toISOString();
     }
     
-    // Add invoice file if present
-    if (invoiceFile) {
-      formData.invoiceFile = invoiceFile;
-    }
-    
+    // Call parent handler - parent will close drawer and reset editingDevice
     onAdd(formData);
   };
 
@@ -246,6 +207,7 @@ export default function AddDeviceDrawer({ open, onClose, onAdd, loading, editing
                 <div className="grid grid-cols-2 gap-4">
                   <InputField label="Vendor" name="vendor" value={form.vendor} onChange={handleChange} />
                   <InputField label="PO Number" name="purchaseOrderNumber" value={form.purchaseOrderNumber} onChange={handleChange} />
+                  <InputField label="Invoice Number" name="invoiceNumber" value={form.invoiceNumber} onChange={handleChange} />
                   <DateField label="Purchase Date" name="purchaseDate" value={form.purchaseDate} onChange={handleChange} />
                   <DateField label="Warranty End Date" name="warrantyEndDate" value={form.warrantyEndDate} onChange={handleChange} />
                   <DateField label="AMC Expiry Date" name="amcExpiryDate" value={form.amcExpiryDate} onChange={handleChange} />

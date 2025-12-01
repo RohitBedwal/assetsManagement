@@ -119,6 +119,7 @@ export default function DeviceInfo() {
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
           <Info label="Vendor" value={device.vendor} />
           <Info label="PO Number" value={device.purchaseOrderNumber} />
+          <Info label="Invoice Number" value={device.invoiceNumber} />
           <Info label="Purchase Date" value={device.purchaseDate} />
           <Info
             label="Warranty"
@@ -141,6 +142,24 @@ export default function DeviceInfo() {
           <Info label="Data Center" value={device.dataCenter} />
           <Info label="Notes" value={device.notes} />
         </ul>
+
+        {/* Invoice Attachment */}
+        {device.invoiceAttachment && (
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">Invoice Attachment</h3>
+            <a
+              href={`${API_URL}${device.invoiceAttachment}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+              <span>View Invoice</span>
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

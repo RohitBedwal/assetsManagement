@@ -71,10 +71,7 @@ export default function CategoryDevices() {
     try {
       if (editingDevice) {
         // Update existing device
-        const { data } = await api.put(`/devices/${editingDevice._id}`, {
-          ...form,
-          categoryId: id,
-        });
+        const { data } = await api.put(`/devices/${editingDevice._id}`, form);
 
         setDevices((prev) => {
           const updated = prev.map((d) => (d._id === data._id ? data : d));
@@ -82,17 +79,15 @@ export default function CategoryDevices() {
           return updated;
         });
 
-        toast.success(`✅ Device ${data.sku} updated successfully`);
+        toast.success(`✅ Device ${form.sku} updated successfully`);
         addNotification(
           "Device Updated",
-          `Device "${data.sku}" (Serial: ${data.serial}) has been updated.`
+          `Device "${form.sku}" (Serial: ${form.serial}) has been updated.`
         );
       } else {
         // Add new device
-        const { data } = await api.post("/devices", {
-          ...form,
-          categoryId: id,
-        });
+        const requestData = { ...form, categoryId: id };
+        const { data } = await api.post("/devices", requestData);
 
         setDevices((prev) => {
           const updated = [data, ...prev];
@@ -100,10 +95,10 @@ export default function CategoryDevices() {
           return updated;
         });
 
-        toast.success(`✅ Device ${data.sku} added successfully`);
+        toast.success(`✅ Device ${form.sku} added successfully`);
         addNotification(
           "New Device Added",
-          `Device "${data.sku}" (Serial: ${data.serial}) has been added to ${category?.name || "category"}.`
+          `Device "${form.sku}" (Serial: ${form.serial}) has been added to ${category?.name || "category"}.`
         );
       }
       
@@ -260,6 +255,8 @@ export default function CategoryDevices() {
                 <th className="pb-3 font-medium">SKU</th>
                 <th className="pb-3 font-medium">Type</th>
                 <th className="pb-3 font-medium">Serial</th>
+                <th className="pb-3 font-medium">Invoice No.</th>
+                <th className="pb-3 font-medium">PO Number</th>
                 <th className="pb-3 font-medium">Status</th>
                 <th className="pb-3 font-medium">Project / Assignment</th>
                 <th className="pb-3 font-medium text-right">Actions</th>
@@ -276,6 +273,12 @@ export default function CategoryDevices() {
                   </td>
                   <td className="py-4 text-gray-500">{category?.name}</td>
                   <td className="py-4 text-gray-500 font-mono text-xs">{d.serial}</td>
+                  <td className="py-4 text-gray-600 text-xs">
+                    {d.invoiceNumber || <span className="text-gray-400 italic">-</span>}
+                  </td>
+                  <td className="py-4 text-gray-600 text-xs">
+                    {d.purchaseOrderNumber || <span className="text-gray-400 italic">-</span>}
+                  </td>
                   <td className="py-4">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusPill(
